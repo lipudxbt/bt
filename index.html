@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>记忆队模拟器</title>
+    <style>
+:root {
+    --bg-deep: #0a0e15; --bg-panel: rgba(14, 18, 28, 0.85); --bg-card: rgba(18, 24, 38, 0.75);
+    --bg-input: rgba(20, 28, 44, 0.8); --border-dim: rgba(255, 255, 255, 0.06);
+    --text-primary: #e2e6f0; --text-secondary: #8899bb; --accent-ice: #6ec6f8;
+    --accent-wind: #5fe6a0; --accent-gold: #f0c060; --accent-pink: #f06090;
+    --radius-lg: 14px; --radius-md: 10px; --radius-sm: 7px;
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: radial-gradient(ellipse at 30% 20%, #131a2c 0%, #0a0e15 70%);
+    color: var(--text-primary); font-family: 'Segoe UI', 'Inter', 'Microsoft YaHei', sans-serif;
+    padding: 8px; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;
+    overflow-x: hidden; -webkit-font-smoothing: antialiased;
+}
+#app {
+    max-width: 1200px; width: 100%; background: var(--bg-panel); backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px); border-radius: var(--radius-lg); padding: 12px;
+    border: 1px solid var(--border-dim); box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-dim); flex-wrap: wrap; gap: 6px; }
+.header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #c0d8ff, #8098ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.btn { background: rgba(30, 40, 60, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-primary); padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; cursor: pointer; transition: all var(--transition-fast); backdrop-filter: blur(6px); letter-spacing: 0.3px; }
+.btn:hover { background: rgba(50, 65, 90, 0.8); border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 0 10px rgba(100, 140, 220, 0.2); transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, #3a5a8c, #4a6fa5); border-color: rgba(100, 150, 220, 0.4); }
+.btn-primary:hover { background: linear-gradient(135deg, #4a6fa5, #5a8ac0); box-shadow: 0 0 16px rgba(100, 160, 240, 0.35); }
+.btn-danger { background: linear-gradient(135deg, #6a2a2a, #8a3a3a); border-color: rgba(200, 80, 80, 0.4); }
+.btn-danger:hover { background: linear-gradient(135deg, #8a3a3a, #a04a4a); box-shadow: 0 0 16px rgba(220, 80, 80, 0.4); }
+.btn-warning { background: linear-gradient(135deg, #6a5a1a, #8a7a2a); border-color: rgba(200, 180, 80, 0.4); }
+.btn-warning:hover { background: linear-gradient(135deg, #8a7a2a, #a09040); box-shadow: 0 0 16px rgba(220, 180, 60, 0.4); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(40%); box-shadow: none; }
+.settings-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; background: var(--bg-card); padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-dim); }
+.settings-row label { color: var(--text-secondary); font-size: 11px; font-weight: 500; }
+.settings-row select { background: var(--bg-input); color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; cursor: pointer; outline: none; }
+.action-bar { background: var(--bg-card); border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 10px; border: 1px solid var(--border-dim); min-height: 38px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; overflow-x: auto; }
+.action-bar .label { font-size: 11px; color: var(--text-secondary); margin-right: 4px; font-weight: 600; }
+.action-slot { background: rgba(20, 28, 42, 0.8); padding: 3px 8px; border-radius: 16px; font-size: 10px; border: 1px solid rgba(255, 255, 255, 0.06); display: flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0; }
+.action-slot.current { border-color: var(--accent-gold); background: rgba(40, 50, 30, 0.6); box-shadow: 0 0 12px rgba(240, 192, 96, 0.25); font-weight: 600; }
+.action-slot.extra { border-color: rgba(120, 160, 255, 0.5); background: rgba(25, 35, 60, 0.7); }
+.action-slot .avatar { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(40, 50, 70, 0.8); font-size: 10px; font-weight: 700; }
+.enemy-bar { background: var(--bg-card); border-radius: var(--radius-md); padding: 6px 12px; margin-bottom: 10px; border: 1px solid var(--border-dim); display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.enemy-bar .enemy-item { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 90px; padding: 4px 6px; background: rgba(10, 16, 24, 0.8); border-radius: var(--radius-sm); border: 1px solid rgba(255, 255, 255, 0.05); }
+.enemy-bar .enemy-item .name { font-size: 11px; font-weight: 600; display: flex; justify-content: space-between; width: 100%; }
+.enemy-bar .enemy-item .name .tag { font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
+.enemy-bar .enemy-item .hp-track { width: 100%; height: 8px; background: rgba(20, 30, 40, 0.8); border-radius: 6px; overflow: hidden; position: relative; }
+.enemy-bar .enemy-item .hp-track .fill { height: 100%; background: linear-gradient(90deg, #d03030, #f05040); border-radius: 6px; transition: width 0.4s; }
+.enemy-bar .enemy-item .hp-track .label { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; font-weight: 700; }
+.enemy-bar .enemy-item .hp-text { font-size: 9px; color: #ff9078; text-align: right; width: 100%; }
+/* ★ 电脑端四列，手机端两列 ★ */
+.team-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.char-card { background: var(--bg-card); border-radius: var(--radius-md); padding: 8px; border: 2px solid var(--border-dim); position: relative; transition: all var(--transition-fast); cursor: pointer; }
+.char-card:hover { border-color: rgba(255, 255, 255, 0.12); }
+.char-card.active-turn { border-color: var(--accent-gold) !important; background: rgba(40, 35, 20, 0.85) !important; box-shadow: 0 0 20px rgba(240, 192, 96, 0.4); animation: pulse-card 1.5s infinite; }
+@keyframes pulse-card { 0%, 100% { box-shadow: 0 0 20px rgba(240, 192, 96, 0.4); } 50% { box-shadow: 0 0 30px rgba(240, 192, 96, 0.6); } }
+.char-card .char-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.char-card .stats { display: flex; flex-wrap: wrap; gap: 2px 6px; font-size: 9px; color: #aabbdd; }
+.char-card .stats span { background: rgba(20, 28, 44, 0.6); padding: 2px 5px; border-radius: 5px; }
+.char-card .hp-bar, .char-card .energy-bar { height: 4px; background: rgba(20, 28, 40, 0.8); border-radius: 4px; margin-top: 2px; overflow: hidden; }
+.char-card .hp-bar .fill { height: 100%; background: linear-gradient(90deg, #e05040, #f08060); border-radius: 4px; transition: width 0.4s; }
+.char-card .energy-bar .fill { height: 100%; background: linear-gradient(90deg, #4a7ac0, #7aaaf0); border-radius: 4px; transition: width 0.4s; }
+.char-card .ult-badge { position: absolute; top: 4px; right: 4px; background: radial-gradient(circle at 30% 30%, #ffe080, #d0a020); color: #0a0e15; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px; opacity: 0; cursor: pointer; border: none; transition: opacity 0.3s; min-width: 36px; text-align: center; z-index: 5; }
+.char-card .ult-badge.active { opacity: 1; animation: pulse-gold 2s infinite; }
+@keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 8px rgba(240, 192, 96, 0.4); } 50% { box-shadow: 0 0 16px rgba(240, 192, 96, 0.7); } }
+.char-card .buff-list { font-size: 7px; color: #aabbdd; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 2px; }
+.char-card .buff-list .buff-tag { background: rgba(30, 40, 60, 0.6); padding: 1px 5px; border-radius: 3px; border-left: 2px solid var(--accent-ice); }
+.char-card .empty-slot { color: #3a4458; font-size: 12px; text-align: center; padding: 16px 0; font-weight: 500; }
+.char-card .dead { color: #ff6b6b; font-weight: 700; font-size: 11px; }
+.char-card .spirit-info { font-size: 9px; color: #7aa9ff; background: rgba(30, 40, 60, 0.3); padding: 1px 6px; border-radius: 4px; display: inline-block; }
+.active-turn-tag { display: none; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #f0c060, #d09020); color: #0a0e15; font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 10px; }
+.char-card.active-turn .active-turn-tag { display: block; }
+.char-card .corner-tag { position: absolute; bottom: 4px; right: 4px; font-size: 8px; color: var(--text-secondary); background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 8px; }
+.control-area { background: var(--bg-card); border-radius: var(--radius-md); padding: 8px 12px; border: 1px solid var(--border-dim); margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.control-area .skill-buttons { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.control-area .skill-buttons .btn { min-width: 40px; font-size: 11px; padding: 4px 10px; }
+.current-actor-indicator { background: linear-gradient(135deg, rgba(240,192,96,0.2), rgba(240,160,40,0.1)); border: 1px solid rgba(240,192,96,0.5); border-radius: 16px; padding: 5px 12px; font-size: 12px; font-weight: 700; color: var(--accent-gold); display: inline-flex; align-items: center; gap: 4px; animation: pulse-current 1.5s infinite; }
+@keyframes pulse-current { 0%, 100% { box-shadow: 0 0 12px rgba(240, 192, 96, 0.4); } 50% { box-shadow: 0 0 20px rgba(240, 192, 96, 0.7); } }
+.control-area .info-badge { font-size: 11px; color: var(--text-secondary); margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.control-area .info-badge .sp { color: var(--accent-gold); font-weight: 700; }
+.main-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.main-row .left { flex: 2; min-width: 240px; }
+.main-row .right { flex: 1; min-width: 180px; max-height: 320px; overflow-y: auto; background: var(--bg-card); border-radius: var(--radius-md); padding: 8px 10px; border: 1px solid var(--border-dim); font-size: 10px; line-height: 1.4; }
+.main-row .right .log-entry { border-bottom: 1px solid rgba(255,255,255,0.03); padding: 2px 0; }
+.main-row .right .log-entry .time { color: #4a6080; font-size: 8px; margin-right: 4px; }
+.main-row .right .log-entry .dmg-ice { color: #6ec6f8; } .main-row .right .log-entry .dmg-wind { color: #5fe6a0; }
+.main-row .right .log-entry .dmg-true { color: #f06090; } .main-row .right .log-entry .dmg-enemy { color: #ff4d4d; font-weight: 600; }
+.main-row .right .log-entry .heal { color: #5fdca0; } .main-row .right .log-entry .buff { color: #8899dd; }
+.main-row .right .log-entry .special { color: #f0c060; } .main-row .right .log-entry .skill-use { color: #fff; font-weight: 600; background: rgba(240,192,96,0.15); padding: 1px 4px; border-radius: 3px; }
+.main-row .right .log-entry .turn-start { color: #f0c060; font-weight: 700; font-size: 10px; text-align: center; display: block; border-top: 1px solid rgba(240,192,96,0.3); border-bottom: 1px solid rgba(240,192,96,0.3); padding: 3px 0; margin: 2px 0; }
+.roster-panel { background: var(--bg-card); border-radius: var(--radius-md); padding: 6px 10px; border: 1px solid var(--border-dim); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.roster-panel .roster-item { background: rgba(20, 28, 44, 0.7); padding: 2px 8px; border-radius: 14px; font-size: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all var(--transition-fast); display: flex; align-items: center; gap: 3px; }
+.roster-panel .roster-item:hover { background: rgba(35, 48, 70, 0.8); border-color: rgba(120, 160, 255, 0.3); }
+.roster-panel .roster-item.in-team { opacity: 0.4; cursor: not-allowed; }
+.roster-panel .roster-item .del { color: #bb6666; cursor: pointer; font-weight: 700; } .roster-panel .roster-item .del:hover { color: #ff6666; }
+.dmg-stats { background: var(--bg-card); border-radius: var(--radius-md); padding: 6px 10px; border: 1px solid var(--border-dim); margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.dmg-stats .total { color: var(--accent-gold); font-weight: 700; font-size: 12px; }
+.dmg-stats .row { display: flex; flex-wrap: wrap; gap: 3px 8px; font-size: 10px; color: #aabbdd; }
+.dmg-stats .row .item { background: rgba(20, 28, 44, 0.6); padding: 1px 6px; border-radius: 4px; border-left: 2px solid #4a6fa5; }
+
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #141a24; border: 2px solid var(--accent-gold); border-radius: var(--radius-lg); padding: 16px; max-width: 450px; width: 90%; max-height: 70vh; overflow-y: auto; box-shadow: 0 0 30px rgba(240,192,96,0.3); }
+.modal h2 { font-size: 16px; color: var(--accent-gold); margin-bottom: 10px; }
+.modal .detail-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; }
+.modal .detail-row .label { color: var(--text-secondary); }
+.modal .detail-row .value { color: var(--text-primary); font-weight: 600; }
+.modal .section-title { color: var(--accent-ice); font-size: 12px; font-weight: 600; margin-top: 12px; margin-bottom: 4px; }
+.modal .lc-toggle { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); }
+.modal .lc-toggle label { color: var(--text-primary); font-size: 12px; }
+.modal .lc-toggle input { transform: scale(1.2); margin-right: 4px; }
+.modal .close-btn { margin-top: 12px; float: right; }
+.modal .switch-btn { background: rgba(30, 40, 60, 0.7); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-primary); padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; margin-top: 12px; }
+
+.pre-battle .enemy-bar, .pre-battle .action-bar, .pre-battle .control-area, .pre-battle .dmg-stats, .pre-battle .header .round-info { display: none; }
+.in-battle .roster-panel, .in-battle .settings-row { display: none; }
+
+@media (max-width: 900px) {
+    .team-panel { grid-template-columns: repeat(2, 1fr); }
+    body { padding: 4px; }
+    #app { padding: 8px; border-radius: 10px; }
+    .header h1 { font-size: 16px; }
+    .btn { padding: 4px 10px; font-size: 11px; }
+    .main-row .right { max-height: 240px; font-size: 9px; }
+    .action-slot { font-size: 9px; padding: 2px 6px; }
+    .action-bar { padding: 6px 8px; }
+    .control-area { padding: 6px 10px; }
+    .dmg-stats { padding: 5px 8px; }
+    .dmg-stats .total { font-size: 11px; }
+    .dmg-stats .row { font-size: 9px; }
+}
+
+@media (max-width: 500px) {
+    .team-panel { grid-template-columns: 1fr 1fr; gap: 4px; }
+    .header h1 { font-size: 14px; }
+    .btn { padding: 3px 8px; font-size: 10px; }
+    .char-card { padding: 5px; }
+    .char-card .char-name { font-size: 11px; }
+    .char-card .stats { font-size: 8px; gap: 1px 4px; }
+    .char-card .stats span { padding: 1px 4px; }
+    .char-card .ult-badge { font-size: 9px; padding: 3px 7px; min-width: 28px; }
+    .main-row .right { max-height: 180px; }
+    .action-slot { font-size: 8px; padding: 2px 5px; }
+    .action-slot .avatar { width: 14px; height: 14px; font-size: 8px; }
+}
+</style>
+</head>
+<body>
+<div id="app" class="pre-battle">
+    <div class="header">
+        <h1>✦ 记忆队模拟器</h1>
+        <div>
+            <span class="round-info" style="color:#8899bb;font-size:12px;margin-right:8px;">轮次: <strong id="roundDisplay">0</strong></span>
+            <button class="btn btn-primary" onclick="startBattle()">▶ 开始</button>
+            <button class="btn btn-danger" onclick="resetBattle()">⟳ 重置</button>
+        </div>
+    </div>
+    <div class="roster-panel" id="rosterPanel"></div>
+    <div class="settings-row" id="settingsRow">
+        <label>3.0的混沌12层怪自己打:</label>
+        <select id="enemyCountSelect">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+        </select>
+        <span style="color:#667799;font-size:11px;">(95级)</span>
+    </div>
+    <div class="action-bar" id="actionBar"><span class="label">⏳ 行动值</span></div>
+    <div class="enemy-bar" id="enemyBar"></div>
+    <div class="main-row">
+        <div class="left">
+            <div class="team-panel" id="teamPanel"></div>
+            <div class="dmg-stats" id="dmgStats"><span class="total">📊 总伤害: <span id="totalDmgDisplay">0</span></span><div class="row" id="dmgBreakdown"></div></div>
+            <div class="control-area" id="controlArea">
+                <div class="skill-buttons" id="skillButtons"><span style="color:#667799;">等待行动...</span></div>
+                <div class="info-badge"><span>⚡ 战技点: <span class="sp" id="spDisplay">3</span>/5</span><span>🎯 目标: <span id="targetDisplay">无</span></span></div>
+            </div>
+        </div>
+        <div class="right" id="logPanel">
+            <div style="font-weight:600;color:#8899bb;margin-bottom:4px;">📜 战斗日志</div>
+            <div id="logContent"><div class="log-entry"><span class="time">[系统]</span> 编队后点击「开始战斗」</div></div>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="charDetailOverlay">
+    <div class="modal" id="charDetailModal"></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+let G = {
+    team: [null, null, null, null], fighters: [], enemies: [],
+    battleActive: false, battleStarted: false, round: 0, roundMaxAV: 300, roundStartAV: 0,
+    sp: 3, maxSp: 5, actionQueue: [], currentActionIdx: 0, log: [], fieldEffects: {}, extraTurns: [],
+    lastAttackTarget: null, processing: false, isUltInterrupt: false, isSpiritTurn: false,
+    damageStats: { total: 0, bySource: {} },
+    qinggeTalentStacks: 0, xilianInPastRipple: false, xilianIsFirstUlt: true,
+    xilianStory: 0, xilianSkyStacks: 0,
+    fengjinCumulativeHeal: 0, fengjinInRain: false, fengjinRainDuration: 0,
+    fengjinIsFirstSummon: true, fengjinSpiritDmgStacks: 0, fengjinLightConeDrainTotal: 0,
+    changyeInDarkMystery: false, changyeDarkMysteryCharges: 0, changyeWaterImmediateReady: true,
+    lastActorName: null, waterScheduled: false,
+    pendingUlts: [], ultSelecting: {},
+    ultHpApplied: { qingge: false, fengjin: false }
+};
+function getAliveEnemies() { return G.enemies.filter(e => e.alive); }
+function getAliveAllies() { return G.fighters.filter(f => f.alive); }
+function getAllyById(id) { return G.fighters.find(f => f.charId === id); }
+function getEnemyById(id) { return G.enemies.find(e => e.id === id); }
+function getRandomAliveEnemy() { const a = getAliveEnemies(); return a.length ? a[Math.floor(Math.random() * a.length)] : null; }
+function getCurrentFighter() { if (!G.actionQueue.length || G.currentActionIdx >= G.actionQueue.length) return null; const e = G.actionQueue[G.currentActionIdx]; if (!e || e.type === 'enemy') return null; const f = G.fighters.find(f => f.charId === e.charId); return (f && f.alive) ? f : null; }
+function addLog(type, text, cls = '') { G.log.push({ time: new Date().toLocaleTimeString(), text, type: cls }); if (G.log.length > 200) G.log.shift(); renderLog(); }
+function calcActionValue(spd) { return 10000 / spd; }
+function getEnergyRechargeBonus() { const q = getAllyById('qingge'); return (q && q.alive && q.spirit && q.spirit.alive) ? 0.10 : 0; }
+function recordDamage(src, amt) { if (!src || amt <= 0) return; G.damageStats.total += amt; G.damageStats.bySource[src] = (G.damageStats.bySource[src] || 0) + amt; renderDamageStats(); }
+function renderDamageStats() { const t = G.damageStats.total; document.getElementById('totalDmgDisplay').textContent = t.toLocaleString(); const c = document.getElementById('dmgBreakdown'); const s = Object.entries(G.damageStats.bySource).sort((a, b) => b[1] - a[1]); let h = ''; s.forEach(([n, d]) => { const p = t > 0 ? (d / t * 100) : 0; h += `<span class="item">${n}: ${d.toLocaleString()} <span style="color:#ffd966;">${p.toFixed(1)}%</span></span>`; }); c.innerHTML = h || '<span style="color:#667799;">暂无伤害数据</span>'; }
+function resetDamageStats() { G.damageStats = { total: 0, bySource: {} }; renderDamageStats(); }
+function getDamageColor(el) { return el === '冰' ? 'dmg-ice' : el === '风' ? 'dmg-wind' : ''; }
+// ============================================================
+// 角色基础面板（本体属性，不含光锥）
+// ============================================================
+const BASE_STATS = {
+    qingge:  { baseHp: 1536, baseAtk: 388, baseDef: 582, baseSpd: 172, baseCritRate: 0.05, baseCritDmg: 0.50 },
+    xilian:  { baseHp: 1536, baseAtk: 446, baseDef: 582, baseSpd: 185, baseCritRate: 0.05, baseCritDmg: 0.50 },
+    changye: { baseHp: 1556, baseAtk: 543, baseDef: 582, baseSpd: 155, baseCritRate: 0.05, baseCritDmg: 0.50 },
+    fengjin: { baseHp: 1195, baseAtk: 388, baseDef: 630, baseSpd: 210, baseCritRate: 0.05, baseCritDmg: 0.50 },
+};
+
+// ============================================================
+// 光锥基础面板（佩戴时叠加到角色基础上）
+// ============================================================
+const LIGHTCONE_STATS = {
+    qingge:  { hp: 1164, atk: 529, def: 463, path: '记忆' },
+    xilian:  { hp: 1270, atk: 476, def: 463, path: '记忆' },
+    changye: { hp: 1164, atk: 529, def: 463, path: '记忆' },
+    fengjin: { hp: 1164, atk: 476, def: 529, path: '记忆' },
+};
+
+// ============================================================
+// 光锥佩戴状态（key是编队位置0~3，true=佩戴）
+// ============================================================
+let G_LC_EQUIPPED = { 0: true, 1: true, 2: true, 3: true };
+
+// ============================================================
+// 角色技能定义（名称、消耗、目标类型、回能）
+// ============================================================
+const CHAR_DATA = {
+    qingge: {
+        id: 'qingge', name: '知更鸟·晴歌', short: '晴歌', avatar: 'Qingge', element: '风', path: '记忆',
+        maxEnergy: 200,                                         // 能量上限
+        skills: {
+            basic: { name: '普攻', cost: 0, target: 'enemy', energy: 20 },       // 普攻回能20
+            skill: { name: '战技', cost: 1, target: 'ally', energy: 30 },         // 战技回能30，消耗1战技点
+            ultimate: { name: '终结技', cost: 0, target: 'self', energy: 5 }      // 终结技回能5
+        },
+        spirit: { name: '小鸟', hpRatio: 0.5, spd: 160 },       // 忆灵：生命=晴歌50%，速度160
+        startWithSpirit: false,                                   // 开局不自动召唤忆灵
+        startEnergyRatio: 0.5,                                    // 开局50%能量
+        talentStacks: 0, maxTalentStacks: 5,                      // 小鸟攻击叠层
+        isGold: false                                             // 不是黄金裔
+    },
+    xilian: {
+        id: 'xilian', name: '昔涟', short: '昔涟', avatar: 'Xilian', element: '冰', path: '记忆',
+        maxEnergy: 27,                                            // 特殊能量：追忆上限27
+        skills: {
+            basic: { name: '看，希望的起始！', cost: 0, target: 'enemy', energy: 0 },   // 普攻不回能
+            skill: { name: '盛放吧，来世的乐土', cost: 1, target: 'self', energy: 0 },   // 战技消耗1战技点
+            ultimate: { name: '诗的「。」誓约的「∞」', cost: 0, target: 'self', energy: 0 }
+        },
+        spirit: { name: '德谬歌', hpRatio: 1.0, spd: 0 },       // 忆灵：速度0，不在行动序列
+        startWithSpirit: false,
+        startEnergyRatio: 0,                                      // 开局0追忆
+        firstUltCost: 24, laterUltCost: 12,                       // 首次终结技24追忆，后续12
+        story: 0, storyMax: 3,                                    // 德谬歌故事层数
+        skyStacks: 0, skyMax: 2                                   // 天空之诗层数
+    },
+    changye: {
+        id: 'changye', name: '长夜月', short: '长夜月', avatar: 'Changye', element: '冰', path: '记忆',
+        maxEnergy: 240,
+        skills: {
+            basic: { name: '从此岁月朦胧', cost: 0, target: 'enemy', energy: 20 },
+            skill: { name: '白昼悄然离去', cost: 0, target: 'self', energy: 30 },      // 战技不消耗战技点
+            ultimate: { name: '晚安，全世界无眠', cost: 0, target: 'self', energy: 5 }
+        },
+        spirit: { name: '长夜', hpRatio: 0.5, spd: 160 },
+        startWithSpirit: true,                                    // 开局自动召唤水母
+        startEnergyRatio: 0.5,
+        isGold: true                                              // 黄金裔
+    },
+    fengjin: {
+        id: 'fengjin', name: '风堇', short: '风堇', avatar: 'Fengjin', element: '风', path: '记忆',
+        maxEnergy: 140,
+        skills: {
+            basic: { name: '当微风轻吻云沫', cost: 0, target: 'enemy', energy: 20 },
+            skill: { name: '爱在虹光洒落时', cost: 1, target: 'self', energy: 30 },
+            ultimate: { name: '飞入晨昏的我们', cost: 0, target: 'self', energy: 5 }
+        },
+        spirit: { name: '小伊卡', hpRatio: 0.5, spd: 0 },
+        startWithSpirit: false,
+        startEnergyRatio: 0.5,
+        isGold: true
+    }
+};
+
+// ============================================================
+// 获取角色实际基础面板（本体 + 光锥）
+// ============================================================
+function getCharBaseStats(charId, slotIdx) {
+    const bs = BASE_STATS[charId];          // 角色本体属性
+    const lc = LIGHTCONE_STATS[charId];     // 光锥属性
+    const equipped = G_LC_EQUIPPED[slotIdx]; // 该位置是否佩戴光锥
+    return {
+        baseHp: bs.baseHp + (equipped ? lc.hp : 0),     // 佩戴光锥则叠加
+        baseAtk: bs.baseAtk + (equipped ? lc.atk : 0),
+        baseDef: bs.baseDef + (equipped ? lc.def : 0),
+        baseSpd: bs.baseSpd,                             // 速度不受光锥影响
+        baseCritRate: bs.baseCritRate,                   // 暴击率不受光锥影响
+        baseCritDmg: bs.baseCritDmg,                     // 暴伤不受光锥影响
+    };
+}
+// ============================================================
+// 敌人模板数据
+// ============================================================
+const ENEMY_TEMPLATES = [
+    { id: 'e1', name: '虚卒·掠夺者', hp: 2000000, def: 950, spd: 130, resist: 0, type: 'elite' },  // 精英怪，防御950
+    { id: 'e2', name: '虚卒·践踏者', hp: 4000000, def: 1000, spd: 120, resist: 0, type: 'elite' }, // 精英怪，防御1000
+    { id: 'e3', name: '虚卒·猎手',   hp: 1000000, def: 900,  spd: 140, resist: 0, type: 'normal' }, // 小怪，防御900
+];
+// 字段说明：
+// hp     = 最大生命值
+// def    = 防御力（用于减伤公式）
+// spd    = 速度（决定行动值间隔）
+// resist = 属性抗性（0=无抗性）
+// type   = 'elite'精英怪 / 'normal'小怪（影响UI标签颜色）
+// ============================================================
+// 伤害计算公式（仿崩铁标准公式）
+// ============================================================
+function calcDamage(attacker, defender, baseDmg, element, sourceLabel, isSpirit = false) {
+    // 1. 防御区：防御减伤
+    const def = defender.def || 900;                           // 敌人防御，默认900
+    const defMulti = 1 - def / (def + 1000);                  // 标准公式：1 - def/(def+1000)
+
+    // 2. 抗性区：属性抗性 + 穿透
+    let resist = defender.resist || 0;                        // 基础抗性
+    if (element !== '风' && element !== '冰') resist += 0.2;  // 非风非冰属性有20%通用抗性
+    const xl = getAllyById('xilian');
+    if (xl && xl.alive && xl.spd >= 180 && (element === '冰')) {
+        resist -= Math.min(xl.spd - 180, 60) * 0.02;         // 昔涟行迹3：冰抗穿透
+    }
+    if (G.fieldEffects.qinggeLC) resist -= 0.12;              // 晴歌光锥：全属性穿透12%
+    const resistMulti = 1 - resist;                           // 抗性乘区
+
+    // 3. 增伤区：各种伤害加成叠加
+    let dmgBonus = 1;
+    if (G.fieldEffects.qinggeUlt) dmgBonus += 0.60;           // 晴歌终结技 +60%
+    if (G.fieldEffects.xilianField) dmgBonus += 0.20;          // 昔涟结界 +20%
+    if (G.fieldEffects.xilianUlt) dmgBonus += 0.50;            // 昔涟终结技 +50%
+    const qg = getAllyById('qingge');
+    if (qg && qg.alive && qg.spd >= 170) dmgBonus += 0.40;    // 晴歌速度≥170 +40%
+    if (xl && xl.alive && xl.spd >= 180) dmgBonus += 0.20;    // 昔涟速度≥180 +20%
+    if (attacker.charId === 'changye' && G.changyeInDarkMystery) dmgBonus += 0.60;  // 至暗之谜长夜月+60%
+    if (isSpirit && attacker.charId === 'changye' && G.changyeInDarkMystery) dmgBonus += 0.60; // 至暗之谜水母+60%
+    const cy = getAllyById('changye');
+    if (cy && cy.alive && cy.spirit && cy.spirit.alive && (attacker.charId === 'changye' || (isSpirit && attacker.charId === 'changye'))) dmgBonus += 0.50; // 水母在场+50%
+
+    // 4. 暴击区：暴击率 + 暴击伤害
+    let cr = attacker.critRate || 0.05;                       // 默认5%暴击率
+    let cd = attacker.critDmg || 0.50;                        // 默认50%暴伤
+    if (attacker.charId === 'fengjin' || (isSpirit && attacker.charId === 'fengjin')) cr = Math.min(cr + 1.0, 1.0); // 风堇暴击率+100%
+    if (G.fieldEffects.xilianUlt) cr = Math.min(cr + 0.50, 1.0); // 昔涟终结技 +50%暴击率
+    if (attacker.charId === 'qingge' || (isSpirit && attacker.charId === 'qingge')) {
+        if (qg && qg.alive && qg.spd >= 170) cr = Math.min(cr + 0.30, 1.0); // 晴歌速度≥170 +30%暴击率
+    }
+    if (attacker.charId === 'changye' || (isSpirit && attacker.charId === 'changye')) cr = Math.min(cr + 0.35, 1.0); // 长夜月行迹2 +35%暴击率
+    // 长夜月战技暴伤加成（对忆灵）
+    if (isSpirit && attacker.charId === 'changye') {
+        const changye = getAllyById('changye');
+        if (changye && changye.alive && changye.buffs && changye.buffs.changyeSkill && changye.buffs.changyeSkill.critDmgBonus) {
+            cd += changye.buffs.changyeSkill.critDmgBonus;    // 添加战技提供的暴伤
+        }
+    }
+    if (G.fieldEffects.xilianPoem) cd += 0.16;                 // 昔涟光锥诗行 +16%暴伤
+    if (G.fieldEffects.xilianBlank && G.fieldEffects.xilianPoem) cd += 0.16 * 0.60; // 同时持有效果+60%
+    if ((attacker.charId === 'changye' || (isSpirit && attacker.charId === 'changye')) && G.fieldEffects.changyeTalentCD) cd += 0.60; // 天赋暴伤+60%
+    if ((attacker.charId === 'changye' || (isSpirit && attacker.charId === 'changye')) && G.fieldEffects.changyeTrace2CD) cd += 0.15; // 行迹2暴伤+15%
+    if ((attacker.charId === 'changye' || (isSpirit && attacker.charId === 'changye')) && G.fieldEffects.xilianMoonBuff) cd += (G.fieldEffects.changyeBaseCritDmg || 0.50) * 0.12; // 献予岁月之诗暴伤+12%
+
+    const isCrit = Math.random() < cr;                        // 判定是否暴击
+    const critMulti = isCrit ? (1 + cd) : 1;                  // 暴击乘区
+
+    // 5. 基础伤害 = 倍率 × 防御区 × 抗性区 × 增伤区 × 暴击区
+    let finalDmg = baseDmg * defMulti * resistMulti * dmgBonus * critMulti;
+
+    // 6. 易伤区（独立乘区）
+    if (G.fieldEffects.changyeUlt) finalDmg *= 1.30;          // 至暗之谜敌方受伤+30%
+    if (G.fieldEffects.xilianBlank) finalDmg *= 1.10;          // 昔涟光锥空白 +10%
+
+    // 7. 防御无视（晴歌光锥：忆灵无视20%防御）
+    if (isSpirit && G.fieldEffects.qinggeLC) {
+        finalDmg = finalDmg / (1 - def / (def + 1000)) * (1 - def * 0.8 / (def * 0.8 + 1000));
+    }
+
+    finalDmg = Math.round(finalDmg);                          // 四舍五入
+
+    // 8. 真实伤害
+    let tQ = 0, tX = 0;
+    const first = G.fighters[0];                              // 编队第1位
+    if (first && first.alive && (attacker.charId === first.charId || (isSpirit && attacker.charId === first.charId))) {
+        let rate = 0.20;                                      // 基础20%真伤
+        const fcd = CHAR_DATA[first.charId];
+        if (fcd) {
+            const me = fcd.maxEnergy || 0;
+            if (me > 140) rate += Math.min(me - 140, 40) / 100; // 晴歌额外能力2：每超1点+1%
+        }
+        tQ = Math.round(finalDmg * rate);                     // 晴歌真伤
+    }
+    if (G.fieldEffects.xilianField) tX = Math.round(finalDmg * 0.24); // 昔涟结界24%真伤
+    finalDmg += tQ + tX;                                      // 真伤并入总伤害
+
+    if (sourceLabel && finalDmg > 0) recordDamage(sourceLabel, finalDmg);
+    return { finalDmg, trueDmgQingge: tQ, trueDmgXilian: tX };
+}
+function summonSpirit(fighter) {
+    const cd = CHAR_DATA[fighter.charId]; if (!cd.spirit) return;
+    const mx = Math.round(fighter.baseHp * (cd.spirit.hpRatio || 0.5)); const spd = cd.spirit.spd || 0;
+    const isFirst = !fighter.spirit || !fighter.spirit.alive;
+    fighter.spirit = { name: cd.spirit.name, label: cd.spiritLabel || cd.spirit.name, hp: mx, maxHp: mx, alive: true, spd: spd, av: spd > 0 ? calcActionValue(spd) : 99999, isFirstSummon: isFirst, hasFuture: true };
+    if (fighter.charId === 'fengjin') { const eg = Math.round(15 * (1 + getEnergyRechargeBonus())); fighter.energy = Math.min(fighter.energy + eg, fighter.maxEnergy); if (G.fengjinIsFirstSummon) { const ex = Math.round(30 * (1 + getEnergyRechargeBonus())); fighter.energy = Math.min(fighter.energy + ex, fighter.maxEnergy); G.fengjinIsFirstSummon = false; } }
+    if (fighter.charId === 'qingge' && isFirst) { fighter.energy = Math.min(fighter.energy + 50, fighter.maxEnergy); G.fieldEffects.qinggeLC = true; }
+    if (fighter.charId === 'xilian') { G.xilianStory = Math.min((G.xilianStory || 0) + 1, 3); if (G.xilianStory >= 3) { G.xilianStory = 0; G.extraTurns.push({ charId: 'xilian_spirit', name: '德谬歌 (故事触发)', avatar: 'spirit', fighter: fighter, isSpirit: true }); } G.fieldEffects.xilianBlank = true; }
+    if (fighter.charId === 'changye') { if (isFirst) { G.extraTurns.push({ charId: 'changye_spirit', name: '长夜 (立即行动)', avatar: 'spirit', fighter: fighter, isSpirit: true }); } G.changyeWaterImmediateReady = true; G.fieldEffects.changyeBaseCritDmg = fighter.baseCritDmg || 0.50; }
+}
+
+function spiritAutoAction(entry) {
+    const f = entry.fighter; if (!f || !f.alive || !f.spirit || !f.spirit.alive) { G.currentActionIdx++; G.processing = false; setTimeout(() => processNextAction(), 100); return; }
+    const spiritName = f.spirit.name;
+
+    // 忆灵行动：【未来】触发，昔涟+1追忆
+    if (f.spirit.hasFuture) { const xl = getAllyById('xilian'); if (xl && xl.alive) { xl.zhuiYi = Math.min(xl.zhuiYi + 1, xl.maxEnergy); addLog('系统', `📖 【未来】忆灵触发: ${spiritName} 行动，昔涟追忆+1 (${xl.zhuiYi}/${xl.maxEnergy})`); } }
+
+    if (f.charId === 'changye') {
+        if ((f.yiZhi || 0) >= 16) { addLog('系统', `🌊 ${spiritName} 使用了【迷梦，流失，如露】(自爆待选目标)`, 'skill-use'); showEnemySelectionForSpirit(f, 'spiritBurst'); G.processing = false; renderAll(); return; }
+        let tgt = G.lastAttackTarget ? getEnemyById(G.lastAttackTarget) : null; if (!tgt || !tgt.alive) tgt = getRandomAliveEnemy();
+        if (tgt) { addLog('系统', `🌊 ${spiritName} 使用了【追忆，蹁跹，如雨】`, 'skill-use'); const ex = Math.floor((f.yiZhi || 0) / 4) * 0.1; const r = calcDamage(f, tgt, f.baseHp * 0.5 * (1 + ex), '冰', spiritName, true); tgt.hp = Math.max(0, tgt.hp - r.finalDmg); if (tgt.hp <= 0) { tgt.alive = false; addLog('系统', `💀 ${tgt.name} 被击败!`); } addLog('战斗', `🌙 ${spiritName} → ${tgt.name} ${r.finalDmg}总伤害`, 'dmg-ice');
+            if (r.trueDmgQingge > 0 || r.trueDmgXilian > 0) { let tl = ''; if (r.trueDmgQingge > 0) tl += `晴歌真伤+${r.trueDmgQingge} `; if (r.trueDmgXilian > 0) tl += `昔涟真伤+${r.trueDmgXilian}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+            G.lastAttackTarget = tgt.id; addYiZhiToChangye(1, '忆灵普攻'); triggerChangyeTrace1(f, '忆灵普攻'); }
+        advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); return;
+    }
+    if (f.charId === 'qingge') { addLog('系统', '🐦 小鸟 自动攻击全体', 'skill-use'); const en = getAliveEnemies(); let td = 0, tq = 0, tx = 0; const sb = (G.qinggeTalentStacks || 0) * 0.30; en.forEach(e => { const r = calcDamage(f, e, f.baseHp * 1.0 * (1 + sb), '风', '小鸟', true); e.hp = Math.max(0, e.hp - r.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r.finalDmg; tq += r.trueDmgQingge; tx += r.trueDmgXilian; }); addLog('战斗', `🐦 小鸟 → 全体 ${td} 总伤害`, 'dmg-wind');
+        if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+        G.fieldEffects.qinggeResist = { desc: '全属性抗性-10%', duration: 2 }; G.qinggeTalentStacks = Math.min((G.qinggeTalentStacks || 0) + 1, 5); advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); return; }
+    G.currentActionIdx++; G.processing = false; setTimeout(() => processNextAction(), 100);
+}
+// ============================================================
+// 行动队列：构建、推进、轮次切换
+// ============================================================
+
+// 构建行动队列（角色 + 忆灵 + 敌人 + 额外回合）
+function buildActionQueue() {
+    const u = [];
+    // 角色及其忆灵
+    G.fighters.forEach(f => {
+        if (!f.alive) return;
+        u.push({ type: 'ally', charId: f.charId, name: f.name, avatar: f.avatar, spd: f.spd, av: f.av || calcActionValue(f.spd), fighter: f, isSpirit: false, extra: false });
+        if (f.spirit && f.spirit.alive && f.spirit.spd > 0) {
+            u.push({ type: 'ally', charId: f.charId, name: f.spirit.name, avatar: 'spirit', spd: f.spirit.spd, av: f.spirit.av || calcActionValue(f.spirit.spd), fighter: f, isSpirit: true, extra: false });
+        }
+    });
+    // 敌人
+    G.enemies.forEach(e => {
+        if (e.alive) u.push({ type: 'enemy', enemyId: e.id, name: e.name, avatar: 'enemy', spd: e.spd, av: e.av || calcActionValue(e.spd), enemy: e, extra: false });
+    });
+    // 额外回合（去重处理）
+    if (G.extraTurns.length) {
+        const seen = new Set();
+        G.extraTurns = G.extraTurns.filter(e => {
+            const key = e.charId + (e.isSpirit ? '_spirit' : '');
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return e.fighter && e.fighter.alive && (!e.isSpirit || (e.fighter.spirit && e.fighter.spirit.alive));
+        });
+        G.extraTurns.forEach(e => u.push({ type: 'ally', charId: e.charId, name: e.name + ' ⭐', avatar: e.avatar || 'spirit', spd: 9999, av: 0, fighter: e.fighter, isSpirit: e.isSpirit || false, extra: true }));
+        G.extraTurns = [];
+    }
+    u.sort((a, b) => a.av - b.av);
+    G.actionQueue = u;
+    G.currentActionIdx = 0;
+}
+
+// 推进行动值：当前行动者 AV += 10000/速度，然后重排队列
+function advanceActionValue() {
+    const cur = G.actionQueue[G.currentActionIdx];
+    if (!cur) return;
+    if (cur.type === 'ally' && cur.fighter) {
+        const spd = cur.isSpirit ? cur.fighter.spirit.spd : cur.fighter.spd;
+        cur.av += calcActionValue(spd);
+        if (cur.isSpirit && cur.fighter.spirit) cur.fighter.spirit.av = cur.av;
+        else cur.fighter.av = cur.av;
+    } else if (cur.type === 'enemy' && cur.enemy) {
+        cur.av += calcActionValue(cur.enemy.spd);
+        cur.enemy.av = cur.av;
+    }
+    G.actionQueue.sort((a, b) => a.av - b.av);
+    const idx = G.actionQueue.findIndex(u => u === cur || (u.type === 'ally' && u.charId === cur.charId && u.isSpirit === cur.isSpirit) || (u.type === 'enemy' && u.enemyId === cur.enemyId));
+    G.currentActionIdx = idx !== -1 ? idx : 0;
+
+    // 检查是否进入下一轮
+    const topAv = G.actionQueue[0]?.av || 0;
+    while (topAv >= G.roundStartAV + G.roundMaxAV) {
+        G.roundStartAV += G.roundMaxAV;
+        G.round++;
+        if (G.round === 1) G.roundMaxAV = 150;
+        addLog('系统', `🔄 进入第 ${G.round + 1} 轮！(${G.roundMaxAV}行动值)`, 'special');
+    }
+}
+function executeBasicWithTarget(fighter, target) {
+    if (!G.battleActive || !fighter || !fighter.alive || !target || !target.alive) return;
+    const cd = CHAR_DATA[fighter.charId]; addLog('系统', `${fighter.name} 使用了【${cd.skills.basic.name}】`, 'skill-use');
+    const r = calcDamage(fighter, target, fighter.baseHp * 0.5, fighter.element, fighter.label || fighter.name, false);
+    target.hp = Math.max(0, target.hp - r.finalDmg); if (target.hp <= 0) { target.alive = false; addLog('系统', `💀 ${target.name} 被击败!`); }
+    addLog('战斗', `${fighter.name} 普攻 → ${target.name} ${r.finalDmg}伤害`, getDamageColor(fighter.element));
+    // ★ 真实伤害日志
+    if (r.trueDmgQingge > 0 || r.trueDmgXilian > 0) {
+        let tl = ''; if (r.trueDmgQingge > 0) tl += `晴歌真伤+${r.trueDmgQingge} `; if (r.trueDmgXilian > 0) tl += `昔涟真伤+${r.trueDmgXilian}`;
+        addLog('系统', `   ✦ ${tl}`, 'dmg-true');
+    }
+    G.sp = Math.min(G.sp + 1, G.maxSp); fighter.energy = Math.min(fighter.energy + Math.round(20 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy);
+    if (fighter.charId === 'changye') { G.lastAttackTarget = target.id; addYiZhiToChangye(1, '普攻'); triggerChangyeTrace1(fighter, '普攻'); const cost = Math.max(1, Math.round(fighter.hp * 0.05)); const oh = fighter.hp; fighter.hp = Math.max(1, fighter.hp - cost); if (fighter.hp < oh) { addYiZhiToChangye(2, '天赋扣血'); G.fieldEffects.changyeTalentCD = true; } G.fieldEffects.changyeTrace2CD = true; triggerAllFengjinPassives(); }
+    if (fighter.charId === 'xilian' && !G.xilianInPastRipple) { fighter.zhuiYi = Math.min((fighter.zhuiYi || 0) + 1, 27); }
+    if (fighter.charId === 'xilian') { giveFutureToAllies(); }
+    if (fighter.charId === 'fengjin' && G.fengjinInRain) triggerFengjinSpiritAttack(fighter);
+    if (fighter.charId === 'qingge') triggerQinggeLightConeDrain(fighter);
+    if (fighter.charId === 'fengjin') triggerFengjinLightConeDrain(fighter);
+    advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300);
+}
+
+function executeEnhancedBasic(fighter) { if (!G.battleActive || !fighter || !fighter.alive || fighter.charId !== 'xilian' || !G.xilianInPastRipple) { addLog('系统', '❌ 无法使用强化普攻'); return; } showEnemySelection(fighter, 'enhancedBasic'); }
+
+function executeEnhancedBasicWithTarget(fighter, mainTarget) {
+    if (!G.battleActive || !fighter || !fighter.alive || !mainTarget || !mainTarget.alive) return;
+    addLog('系统', '昔涟 使用了【向着爱与明天♪】', 'skill-use'); const en = getAliveEnemies(); let td = 0, tq = 0, tx = 0;
+    const r1 = calcDamage(fighter, mainTarget, fighter.baseHp * 0.30, '冰', '昔涟(强化)', false); mainTarget.hp = Math.max(0, mainTarget.hp - r1.finalDmg); if (mainTarget.hp <= 0) { mainTarget.alive = false; addLog('系统', `💀 ${mainTarget.name} 被击败!`); } td += r1.finalDmg; tq += r1.trueDmgQingge; tx += r1.trueDmgXilian;
+    en.forEach(e => { if (!e.alive) return; const r2 = calcDamage(fighter, e, fighter.baseHp * 0.30, '冰', '昔涟(强化)', false); e.hp = Math.max(0, e.hp - r2.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r2.finalDmg; tq += r2.trueDmgQingge; tx += r2.trueDmgXilian; });
+    addLog('战斗', `昔涟(强化) → ${mainTarget.name}及全体 ${td} 总伤害`, 'dmg-ice');
+    if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+    fighter.zhuiYi = Math.min((fighter.zhuiYi || 0) + 3, 27); giveFutureToAllies();
+    advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300);
+}
+function executeSkill(fighter, skillKey, targetId) {
+    if (!G.battleActive || !fighter || !fighter.alive || skillKey !== 'skill') return;
+    const cd = CHAR_DATA[fighter.charId]; addLog('系统', `${fighter.name} 使用了【${cd.skills.skill.name}】`, 'skill-use');
+
+    if (fighter.charId === 'qingge') { if (G.sp <= 0) { addLog('系统', '❌ 战技点不足'); return; } G.sp--; renderAll(); if (!fighter.spirit || !fighter.spirit.alive) { summonSpirit(fighter); } if (targetId) { const ally = getAllyById(targetId); if (ally && ally.spirit && ally.spirit.alive) { const curAv = G.actionQueue[G.currentActionIdx]?.av || fighter.av; ally.spirit.av = curAv + 1; addLog('系统', `🌪️ ${ally.name} 忆灵行动提前到当前行动者之后`); } else if (ally) { ally.energy = Math.min(ally.energy + Math.round(ally.maxEnergy * 0.05 * (1 + getEnergyRechargeBonus())), ally.maxEnergy); } if (ally) { ally.buffs = ally.buffs || {}; ally.buffs.qinggeSkill = { desc: '忆灵伤害+40%', duration: 2 }; } } fighter.energy = Math.min(fighter.energy + Math.round(30 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy); advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); return; }
+
+    if (fighter.charId === 'xilian') { if (G.sp <= 0) { addLog('系统', '❌ 战技点不足'); return; } if (G.xilianInPastRipple) { addLog('系统', '❌ 往昔状态无法释放战技'); return; } G.sp--; renderAll(); fighter.zhuiYi = Math.min((fighter.zhuiYi || 0) + 3, 27); G.fieldEffects.xilianField = { desc: '附加24%真实伤害', duration: 2 }; giveFutureToAllies(); advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); return; }
+
+    if (fighter.charId === 'changye') {
+        const cost = Math.max(1, Math.round(fighter.hp * 0.10)); const oh = fighter.hp; fighter.hp = Math.max(1, fighter.hp - cost);
+        if (fighter.hp < oh) { addYiZhiToChangye(2, '天赋扣血'); G.fieldEffects.changyeTalentCD = true; }
+        triggerAllFengjinPassives();
+        if (!fighter.spirit || !fighter.spirit.alive) { summonSpirit(fighter); } else { fighter.spirit.hp = Math.min(fighter.spirit.maxHp, fighter.spirit.hp + Math.round(fighter.spirit.maxHp * 0.5)); }
+        const baseCd = fighter.baseCritDmg || 0.50; const mc = G.team.filter(id => id !== null).filter(id => CHAR_DATA[id] && CHAR_DATA[id].path === '记忆').length;
+        const t3 = mc >= 4 ? 0.65 : mc === 3 ? 0.50 : mc === 2 ? 0.15 : 0.05; const critBonus = baseCd * 0.24 + t3;
+        G.fighters.forEach(f => { if (f.spirit && f.spirit.alive) { f.buffs = f.buffs || {}; f.buffs.changyeSkill = { desc: `忆灵暴伤+${Math.round(critBonus * 100)}%`, duration: 2, critDmgBonus: critBonus }; } });
+        let yzGain = G.changyeInDarkMystery ? 14 : 2; if (G.changyeInDarkMystery) addLog('系统', '🌑 至暗之谜额外+12忆质');
+        addYiZhiToChangye(yzGain, '战技'); triggerChangyeTrace1(fighter, '战技');
+        fighter.energy = Math.min(fighter.energy + Math.round(30 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy);
+        const cost2 = Math.max(1, Math.round(fighter.hp * 0.05)); const oh2 = fighter.hp; fighter.hp = Math.max(1, fighter.hp - cost2);
+        if (fighter.hp < oh2) { addYiZhiToChangye(2, '天赋扣血'); G.fieldEffects.changyeTalentCD = true; }
+        G.fieldEffects.changyeTrace2CD = true; triggerAllFengjinPassives();
+        if (G.fieldEffects.xilianMoonBuff) addYiZhiToChangye(1, '献予岁月之诗');
+        advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); return;
+    }
+
+    if (fighter.charId === 'fengjin') { if (G.sp <= 0) { addLog('系统', '❌ 战技点不足'); return; } G.sp--; renderAll(); if (!fighter.spirit || !fighter.spirit.alive) { summonSpirit(fighter); } const hv = Math.round(fighter.baseHp * 0.08 + 160); let totalHeal = 0; G.fighters.forEach(f => { if (f.alive && f.charId !== 'fengjin') { const old = f.hp; f.hp = Math.min(f.maxHp, f.hp + hv); totalHeal += hv; } }); if (fighter.spirit) { fighter.spirit.hp = Math.min(fighter.spirit.maxHp, fighter.spirit.hp + Math.round(fighter.baseHp * 0.10 + 200)); } G.fengjinCumulativeHeal += totalHeal; G.fengjinSpiritDmgStacks = Math.min((G.fengjinSpiritDmgStacks || 0) + 1, 3); fighter.energy = Math.min(fighter.energy + Math.round(30 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy); if (G.fengjinInRain) triggerFengjinSpiritAttack(fighter); triggerFengjinLightConeDrain(fighter); if (G.xilianSkyStacks > 0) { G.xilianSkyStacks--; if (G.xilianSkyStacks <= 0) G.fieldEffects.xilianSkyBuff = null; } addLog('治疗', `💚 风堇战技总治疗: +${totalHeal}`, 'heal'); advanceActionValue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); }
+}
+function executeUlt(fighter) {
+    if (!fighter || !fighter.alive) return; const cd = CHAR_DATA[fighter.charId];
+    G.ultSelecting = G.ultSelecting || {}; G.ultSelecting[fighter.charId] = true;
+
+    if (fighter.charId === 'xilian') {
+        const need = G.xilianIsFirstUlt ? 24 : 12; if ((fighter.zhuiYi || 0) < need) { G.isUltInterrupt = false; G.ultSelecting[fighter.charId] = false; return; }
+        fighter.zhuiYi -= need; addLog('系统', `✨ 昔涟 使用了【${cd.skills.ultimate.name}】`, 'skill-use');
+        if (G.xilianIsFirstUlt) { if (!fighter.spirit || !fighter.spirit.alive) summonSpirit(fighter); G.fighters.forEach(f => { if (f.alive && f.charId !== 'xilian') { f.energy = f.maxEnergy; addLog('系统', `⚡ 昔涟激活 ${f.name} 终结技!`); } }); G.xilianInPastRipple = true; fighter.inPastRipple = true; G.fieldEffects.xilianUlt = { desc: '暴击率+50%', duration: 999 }; G.fieldEffects.xilianField = { desc: '附加24%真实伤害', duration: 999 }; G.xilianIsFirstUlt = false; G.xilianStory = Math.min((G.xilianStory || 0) + 1, 3); if (G.xilianStory >= 3) { G.xilianStory = 0; G.extraTurns.push({ charId: 'xilian_spirit', name: '德谬歌 (故事触发)', avatar: 'spirit', fighter: fighter, isSpirit: true }); } fighter.zhuiYi = Math.min(fighter.zhuiYi + 12, 27); addLog('系统', `📖 全队充能: 昔涟追忆+12 (${fighter.zhuiYi}/27)`); giveFutureToAllies(); showXilianUltChoice(fighter); return; }
+        else { if (!G.xilianInPastRipple) { G.xilianInPastRipple = true; fighter.inPastRipple = true; G.fieldEffects.xilianUlt = { desc: '暴击率+50%', duration: 999 }; } G.xilianStory = Math.min((G.xilianStory || 0) + 1, 3); if (G.xilianStory >= 3) { G.xilianStory = 0; G.extraTurns.push({ charId: 'xilian_spirit', name: '德谬歌 (故事触发)', avatar: 'spirit', fighter: fighter, isSpirit: true }); } giveFutureToAllies(); showXilianUltChoice(fighter); return; }
+    }
+
+    if (fighter.charId === 'qingge') { showSelfUltChoice(fighter); return; }
+    if (fighter.charId === 'changye') { showEnemyUltChoice(fighter); return; }
+    if (fighter.charId === 'fengjin') { showAllyUltChoice(fighter); return; }
+}
+
+function executeQinggeUlt(fighter) {
+    const cd = CHAR_DATA[fighter.charId]; addLog('系统', `${fighter.name} 使用了【${cd.skills.ultimate.name}】`, 'skill-use');
+    fighter.energy = 0; if (!fighter.spirit || !fighter.spirit.alive) summonSpirit(fighter);
+    if (fighter.spirit) { const curAv = G.actionQueue[G.currentActionIdx]?.av || fighter.av; fighter.spirit.av = curAv + 1; }
+    G.fieldEffects.qinggeUlt = { desc: '生命+20%,伤害+60%', duration: 3 };
+    if (!G.ultHpApplied.qingge) { G.fighters.forEach(f => { if (f.alive) { const b = Math.round(f.baseHp * 0.2); f.maxHp += b; f.hp += b; } }); G.ultHpApplied.qingge = true; }
+    G.fighters.forEach(f => { if (f.charId !== 'qingge' && f.spirit && f.spirit.alive) { f.spirit.av = (G.actionQueue[G.currentActionIdx]?.av || fighter.av) + 1; } });
+    fighter.energy = Math.min(fighter.energy + Math.round(5 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy);
+    G.sp = Math.min(G.sp + 1, G.maxSp); addLog('系统', `🌸 晴歌终结技回复1战技点 (${G.sp}/5)`, 'buff');
+    G.ultSelecting[fighter.charId] = false; afterXilianUlt(fighter);
+}
+
+function executeChangyeUlt(fighter) {
+    const cd = CHAR_DATA[fighter.charId]; addLog('系统', `${fighter.name} 使用了【${cd.skills.ultimate.name}】`, 'skill-use');
+    fighter.energy = 0; if (!fighter.spirit || !fighter.spirit.alive) summonSpirit(fighter);
+    const en = getAliveEnemies(); let td = 0, tq = 0, tx = 0;
+    const spiritName = fighter.spirit ? fighter.spirit.name : '水母';
+    en.forEach(e => { const r = calcDamage(fighter, e, fighter.baseHp * 2.0, '冰', spiritName, true); e.hp = Math.max(0, e.hp - r.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r.finalDmg; tq += r.trueDmgQingge; tx += r.trueDmgXilian; });
+    addLog('战斗', `🌙 ${spiritName}终结技 → 全体 ${td} 总伤害`, 'dmg-ice');
+    if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+    G.changyeInDarkMystery = true; G.changyeDarkMysteryCharges = 2; G.fieldEffects.changyeUlt = { desc: '敌方受伤害+30%', duration: 2 };
+    addLog('系统', `🌙 【至暗之谜】开启: 长夜月+水母伤害+60%, 充能${G.changyeDarkMysteryCharges}`);
+    addYiZhiToChangye(2, '终结技'); triggerChangyeTrace1(fighter, '终结技');
+    fighter.energy = Math.min(fighter.energy + Math.round(5 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy);
+    if (G.fieldEffects.xilianMoonBuff) addYiZhiToChangye(1, '献予岁月之诗');
+    G.ultSelecting[fighter.charId] = false; afterXilianUlt(fighter);
+}
+
+function executeFengjinUlt(fighter) {
+    const cd = CHAR_DATA[fighter.charId]; addLog('系统', `${fighter.name} 使用了【${cd.skills.ultimate.name}】`, 'skill-use');
+    fighter.energy = 0; if (!fighter.spirit || !fighter.spirit.alive) summonSpirit(fighter);
+    const hv = Math.round(fighter.baseHp * 0.10 + 200); let totalHeal = 0;
+    G.fighters.forEach(f => { if (f.alive) { const old = f.hp; f.hp = Math.min(f.maxHp, f.hp + hv); totalHeal += f.hp - old; } });
+    if (fighter.spirit) { fighter.spirit.hp = Math.min(fighter.spirit.maxHp, fighter.spirit.hp + Math.round(fighter.baseHp * 0.12 + 240)); }
+    G.fengjinCumulativeHeal += totalHeal; G.fengjinSpiritDmgStacks = Math.min((G.fengjinSpiritDmgStacks || 0) + 1, 3);
+    G.fengjinInRain = true; G.fengjinRainDuration = 3;
+    if (!G.ultHpApplied.fengjin) { G.fighters.forEach(f => { if (f.alive) { const b = Math.round(f.baseHp * 0.3 + 600); f.maxHp += b; f.hp += b; } }); G.ultHpApplied.fengjin = true; }
+    addLog('治疗', `🌿 风堇终结技全队回血: +${totalHeal}`, 'heal'); addLog('系统', '🌿 风堇进入【雨过天晴】 (3回合)');
+    triggerFengjinLightConeDrain(fighter);
+    fighter.energy = Math.min(fighter.energy + Math.round(5 * (1 + getEnergyRechargeBonus())), fighter.maxEnergy);
+    triggerFengjinSpiritAttack(fighter);
+    G.ultSelecting[fighter.charId] = false; afterXilianUlt(fighter);
+}
+function executeSpiritBurst(fighter, target) {
+    if (!fighter || !fighter.alive || !fighter.spirit || !fighter.spirit.alive) return;
+    const yz = fighter.yiZhi || 0; if (yz < 16 || !G.isSpiritTurn) { addLog('系统', '❌ 无法自爆'); return; }
+    const spiritName = fighter.spirit.name;
+    addLog('系统', `💥 ${spiritName} 使用了【迷梦，流失，如露】(主目标: ${target.name})`, 'skill-use');
+    const en = getAliveEnemies(); let td = 0, tq = 0, tx = 0;
+    let burstBonus = 1; if (G.fieldEffects.xilianMoonBuff) burstBonus += 0.18;
+    const bd = fighter.spirit.maxHp * 0.12 * burstBonus;
+    en.forEach(e => { let d = e.id === target.id ? bd * yz : bd * yz * 0.5; const r = calcDamage(fighter, e, d, '冰', spiritName, true); e.hp = Math.max(0, e.hp - r.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r.finalDmg; tq += r.trueDmgQingge; tx += r.trueDmgXilian; });
+    addLog('战斗', `💥 ${spiritName}自爆 → ${target.name}及全体 ${td} 总伤害`, 'dmg-ice');
+    if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+    fighter.yiZhi = 0; fighter.spirit.alive = false; G.sp = Math.min(G.sp + 1, G.maxSp);
+    if (G.changyeInDarkMystery) { G.changyeDarkMysteryCharges--; if (G.changyeDarkMysteryCharges <= 0) { G.changyeInDarkMystery = false; G.fieldEffects.changyeUlt = null; addLog('系统', '🌑 至暗之谜充能耗尽，退出状态'); } }
+    triggerAllFengjinPassives(); G.changyeWaterImmediateReady = true; G.isSpiritTurn = false;
+    const yzForSpd = Math.min(yz, 40); const spdBonusPct = 10 + yzForSpd; const baseSpd = fighter.baseSpdRecord || fighter.spd; const oldSpd = fighter.spd;
+    fighter.spd = Math.round(baseSpd * (1 + spdBonusPct / 100)); fighter.spdBuff = spdBonusPct;
+    addLog('系统', `🌙 长夜月速度+${spdBonusPct}% (基于基础速度${baseSpd}，${oldSpd}→${fighter.spd})，下回合开始移除`, 'buff');
+    fighter.av += calcActionValue(fighter.spd);
+    buildActionQueue(); G.currentActionIdx = 0; G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300);
+}
+// ============================================================
+// 选择界面：敌人选择、队友选择、昔涟大招分支、终结技选择
+// ============================================================
+
+// 选择敌人目标（普攻/自爆/强化普攻用）
+function showEnemySelection(fighter, skillKey) {
+    if (!fighter || !fighter.alive) return;
+    const en = getAliveEnemies();
+    if (!en.length) { addLog('系统', '❌ 没有敌人'); return; }
+    const c = document.getElementById('skillButtons');
+    let lb = '选择目标';
+    if (skillKey === 'basic') lb = `🎯 选择普攻目标 (${fighter.name})`;
+    else if (skillKey === 'spiritBurst') lb = `💥 选择自爆主目标 (${fighter.name})`;
+    else if (skillKey === 'enhancedBasic') lb = `🎯 选择强化普攻主目标 (${fighter.name})`;
+    let h = `<span style="color:#aabbdd;font-size:12px;">${lb}</span>`;
+    en.forEach(e => {
+        const pct = Math.round(e.hp / e.maxHp * 100);
+        const tag = e.type === 'normal' ? '小怪' : '精英怪';
+        const tc = e.type === 'normal' ? '#66aa88' : '#ff9966';
+        h += `<button class="btn" data-enemy-id="${e.id}" data-skill="${skillKey}" data-char-id="${fighter.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:140px;padding:4px 10px;">
+            <span>${e.name} <span style="font-size:8px;background:${tc};color:#0b0e14;padding:1px 6px;border-radius:10px;margin-left:4px;">${tag}</span></span>
+            <span style="font-size:9px;color:#ff7766;">❤️ ${Math.round(e.hp)}/${Math.round(e.maxHp)} (${pct}%)</span>
+        </button>`;
+    });
+    h += `<button class="btn btn-danger" id="btnCancelAction">取消</button>`;
+    c.innerHTML = h;
+
+    // 绑定事件
+    c.querySelectorAll('button[data-enemy-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const enemyId = this.getAttribute('data-enemy-id');
+            const sk = this.getAttribute('data-skill');
+            const charId = this.getAttribute('data-char-id');
+            const f = getAllyById(charId);
+            const t = getEnemyById(enemyId);
+            if (f && f.alive && t && t.alive) {
+                if (sk === 'basic') executeBasicWithTarget(f, t);
+                else if (sk === 'spiritBurst') executeSpiritBurst(f, t);
+                else if (sk === 'enhancedBasic') executeEnhancedBasicWithTarget(f, t);
+            }
+        });
+    });
+
+    const cancelBtn = document.getElementById('btnCancelAction');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const cf = getCurrentFighter();
+            if (cf && cf.alive) showSkillSelection(cf);
+            else { G.processing = false; setTimeout(() => processNextAction(), 100); }
+            renderAll();
+        });
+    }
+}
+
+// 水母自爆专用选择界面
+function showEnemySelectionForSpirit(fighter, skillKey) {
+    if (!fighter || !fighter.alive || !fighter.spirit || !fighter.spirit.alive) return;
+    const en = getAliveEnemies();
+    if (!en.length) { addLog('系统', '❌ 没有敌人'); return; }
+    const c = document.getElementById('skillButtons');
+    const spiritName = fighter.spirit.name;
+    let lb = `💥 选择自爆主目标 (${spiritName})`;
+    let h = `<span style="color:#aabbdd;font-size:12px;">${lb}</span>`;
+    en.forEach(e => {
+        const pct = Math.round(e.hp / e.maxHp * 100);
+        const tag = e.type === 'normal' ? '小怪' : '精英怪';
+        const tc = e.type === 'normal' ? '#66aa88' : '#ff9966';
+        h += `<button class="btn" data-enemy-id="${e.id}" data-skill="${skillKey}" data-char-id="${fighter.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:140px;padding:4px 10px;">
+            <span>${e.name} <span style="font-size:8px;background:${tc};color:#0b0e14;padding:1px 6px;border-radius:10px;margin-left:4px;">${tag}</span></span>
+            <span style="font-size:9px;color:#ff7766;">❤️ ${Math.round(e.hp)}/${Math.round(e.maxHp)} (${pct}%)</span>
+        </button>`;
+    });
+    h += `<button class="btn btn-danger" id="btnCancelAction">取消</button>`;
+    c.innerHTML = h;
+
+    c.querySelectorAll('button[data-enemy-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const enemyId = this.getAttribute('data-enemy-id');
+            const sk = this.getAttribute('data-skill');
+            const charId = this.getAttribute('data-char-id');
+            const f = getAllyById(charId);
+            const t = getEnemyById(enemyId);
+            if (f && f.alive && t && t.alive) {
+                if (sk === 'spiritBurst') executeSpiritBurst(f, t);
+            }
+        });
+    });
+
+    const cancelBtn = document.getElementById('btnCancelAction');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const cf = getCurrentFighter();
+            if (cf && cf.alive) showSkillSelection(cf);
+            else { G.processing = false; setTimeout(() => processNextAction(), 100); }
+            renderAll();
+        });
+    }
+}
+
+// 选择队友（晴歌战技用）
+function showAllySelection(fighter, skillKey) {
+    const allies = getAliveAllies();
+    const c = document.getElementById('skillButtons');
+    let h = `<span style="color:#aabbdd;">🎯 选择队友 (${fighter.name})</span>`;
+    allies.forEach(a => {
+        if (a.charId !== fighter.charId) {
+            h += `<button class="btn" data-ally-id="${a.charId}" data-skill="${skillKey}" data-char-id="${fighter.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:120px;padding:4px 10px;">${a.name}</button>`;
+        }
+    });
+    h += `<button class="btn btn-danger" id="btnCancelAction">取消</button>`;
+    c.innerHTML = h;
+
+    c.querySelectorAll('button[data-ally-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const allyId = this.getAttribute('data-ally-id');
+            const sk = this.getAttribute('data-skill');
+            const charId = this.getAttribute('data-char-id');
+            const f = getAllyById(charId);
+            if (f && f.alive) {
+                if (sk === 'skill') executeSkill(f, 'skill', allyId);
+            }
+        });
+    });
+
+    const cancelBtn = document.getElementById('btnCancelAction');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const cf = getCurrentFighter();
+            if (cf && cf.alive) showSkillSelection(cf);
+            else { G.processing = false; setTimeout(() => processNextAction(), 100); }
+            renderAll();
+        });
+    }
+}
+
+// 晴歌终结技选择界面
+function showSelfUltChoice(fighter) {
+    const c = document.getElementById('skillButtons');
+    let h = `<span style="color:#ffd966;font-size:13px;">🌸 晴歌终结技 — 选择目标:</span>`;
+    h += `<button class="btn btn-primary" id="btnQinggeUlt">${fighter.name} (自身)</button>`;
+    h += `<button class="btn btn-warning" id="btnQinggeUltRelease">⚡ 释放</button>`;
+    c.innerHTML = h;
+    document.getElementById('btnQinggeUlt').addEventListener('click', () => executeQinggeUlt(fighter));
+    document.getElementById('btnQinggeUltRelease').addEventListener('click', () => executeQinggeUlt(fighter));
+}
+
+// 长夜月终结技选择界面
+function showEnemyUltChoice(fighter) {
+    const en = getAliveEnemies();
+    if (!en.length) { executeChangyeUlt(fighter); return; }
+    const c = document.getElementById('skillButtons');
+    let h = `<span style="color:#ffd966;font-size:13px;">🌙 长夜月终结技 — 选择目标:</span>`;
+    en.forEach(e => {
+        const pct = Math.round(e.hp / e.maxHp * 100);
+        h += `<button class="btn" data-enemy-id="${e.id}" data-char-id="${fighter.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:120px;padding:4px 10px;">
+            <span>${e.name}</span><span style="font-size:9px;color:#ff7766;">❤️ ${Math.round(e.hp)}/${Math.round(e.maxHp)} (${pct}%)</span>
+        </button>`;
+    });
+    h += `<button class="btn btn-warning" id="btnChangyeUltRelease">⚡ 释放</button>`;
+    c.innerHTML = h;
+    c.querySelectorAll('button[data-enemy-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const charId = this.getAttribute('data-char-id');
+            const f = getAllyById(charId);
+            if (f && f.alive) executeChangyeUlt(f);
+        });
+    });
+    document.getElementById('btnChangyeUltRelease').addEventListener('click', () => executeChangyeUlt(fighter));
+}
+
+// 风堇终结技选择界面
+function showAllyUltChoice(fighter) {
+    const allies = getAliveAllies();
+    const c = document.getElementById('skillButtons');
+    let h = `<span style="color:#ffd966;font-size:13px;">🌿 风堇终结技 — 选择目标:</span>`;
+    allies.forEach(a => {
+        h += `<button class="btn" data-ally-id="${a.charId}" data-char-id="${fighter.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:120px;padding:4px 10px;">
+            <span>${a.name}</span><span style="font-size:9px;color:#7aa9ff;">❤️ ${Math.round(a.hp)}/${Math.round(a.maxHp)}</span>
+        </button>`;
+    });
+    h += `<button class="btn btn-warning" id="btnFengjinUltRelease">⚡ 释放</button>`;
+    c.innerHTML = h;
+    c.querySelectorAll('button[data-ally-id]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const charId = this.getAttribute('data-char-id');
+            const f = getAllyById(charId);
+            if (f && f.alive) executeFengjinUlt(f);
+        });
+    });
+    document.getElementById('btnFengjinUltRelease').addEventListener('click', () => executeFengjinUlt(fighter));
+}
+
+// 昔涟大招选择分支
+function showXilianUltChoice(fighter) {
+    const c = document.getElementById('skillButtons');
+    c.innerHTML = `<span style="color:#ffd966;font-size:13px;">✨ 昔涟忆灵形态 — 选择:</span><button class="btn btn-primary" id="btnXilianBuff">📈 给队友增益</button><button class="btn btn-primary" id="btnXilianAttack">⚔️ 攻击全体</button>`;
+    document.getElementById('btnXilianBuff').addEventListener('click', () => xilianUltChoice(fighter.charId, 'buff'));
+    document.getElementById('btnXilianAttack').addEventListener('click', () => xilianUltChoice(fighter.charId, 'attack'));
+}
+
+function xilianUltChoice(charId, choice) {
+    const f = getAllyById(charId); if (!f) return;
+    if (choice === 'buff') {
+        const allies = getAliveAllies(); if (!allies.length) return;
+        const c = document.getElementById('skillButtons');
+        let h = `<span style="color:#aabbdd;">🎯 选择增益队友:</span>`;
+        allies.forEach(a => { if (a.charId !== f.charId) h += `<button class="btn" data-ally-id="${a.charId}" data-char-id="${f.charId}" style="display:flex;flex-direction:column;align-items:flex-start;min-width:120px;padding:4px 10px;">${a.name}</button>`; });
+        c.innerHTML = h;
+        c.querySelectorAll('button[data-ally-id]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const allyId = this.getAttribute('data-ally-id');
+                const charId = this.getAttribute('data-char-id');
+                const ff = getAllyById(charId);
+                if (ff && ff.alive) xilianApplyBuff(ff.charId, allyId);
+            });
+        });
+    } else {
+        const en = getAliveEnemies(); if (!en.length) return;
+        let td = 0, tq = 0, tx = 0;
+        en.forEach(e => { const r = calcDamage(f, e, f.baseHp * 0.60, '冰', '德谬歌', true); e.hp = Math.max(0, e.hp - r.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r.finalDmg; tq += r.trueDmgQingge; tx += r.trueDmgXilian; });
+        addLog('战斗', `✨ 德谬歌 → 全体 ${td} 总伤害`, 'dmg-ice');
+        if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+        G.fieldEffects.xilianPoem = true;
+        afterXilianUlt(f);
+    }
+}
+
+function xilianApplyBuff(charId, targetId) {
+    const f = getAllyById(charId); const t = getAllyById(targetId); if (!f || !t) return;
+    const tCd = CHAR_DATA[targetId]; const isGold = tCd && tCd.isGold;
+    if (isGold) { addLog('系统', `✨ 昔涟为黄金裔 ${t.name} 施加特殊增益`, 'buff'); }
+    else { t.buffs = t.buffs || {}; t.buffs.xilianBuff = { desc: '伤害+40%', duration: 2 }; addLog('系统', `✨ 昔涟为 ${t.name} 施加增益: 伤害+40% (2回合)`); }
+    if (t.charId === 'fengjin') { G.xilianSkyStacks = 2; G.fieldEffects.xilianSkyBuff = true; t.energy = Math.min(t.energy + 24, t.maxEnergy); addLog('系统', `🌤️ 献予天空之诗: 风堇回能24, 治疗+72%`); }
+    if (t.charId === 'changye') { G.fieldEffects.xilianMoonBuff = true; addLog('系统', `🌙 献予岁月之诗: 自爆伤害+18%, 战技/终结技额外+1忆质, 暴伤额外+12%`); }
+    afterXilianUlt(f);
+}
+
+function afterXilianUlt(fighter) {
+    G.isUltInterrupt = false;
+    G.ultSelecting = {};
+    renderAll();
+    if (G.pendingUlts && G.pendingUlts.length > 0) {
+        const nextUlt = G.pendingUlts.shift();
+        const nextFighter = getAllyById(nextUlt.charId);
+        if (nextFighter && nextFighter.alive) {
+            addLog('系统', `⚡ 排队终结技触发: ${nextFighter.name}`, 'special');
+            G.isUltInterrupt = true;
+            executeUlt(nextFighter);
+            return;
+        } else { afterXilianUlt(fighter); return; }
+    }
+    if (G.isSpiritTurn) {
+        const cy = getAllyById('changye');
+        if (cy && cy.alive && cy.spirit && cy.spirit.alive && (cy.yiZhi || 0) >= 16) {
+            addLog('系统', `🌊 水母 使用了【迷梦，流失，如露】(自爆待选目标)`, 'skill-use');
+            showEnemySelectionForSpirit(cy, 'spiritBurst');
+            G.processing = false;
+            return;
+        }
+    }
+    const cf = getCurrentFighter();
+    if (cf) showSkillSelection(cf);
+    else { G.processing = false; setTimeout(() => processNextAction(), 100); }
+}
+function triggerAllFengjinPassives() {
+    const fj = getAllyById('fengjin'); if (!fj || !fj.alive || !fj.spirit || !fj.spirit.alive) return;
+    let totalHeal = 0;
+    G.fighters.forEach(f => { if (f.alive) { let h = Math.round(fj.baseHp * 0.02 + 20); if (f.hp <= f.maxHp * 0.5) h = Math.round(h * 1.25); if (fj.spd > 200) h = Math.round(h * (1 + Math.min(fj.spd - 200, 200) / 100)); if (G.fieldEffects.xilianSkyBuff) h = Math.round(h * 1.72); G.fengjinCumulativeHeal += h; f.hp = Math.min(f.maxHp, f.hp + h); totalHeal += h; } });
+    if (G.fengjinInRain) { const eh = Math.round(fj.baseHp * 0.02 + 20); G.fighters.forEach(f => { if (f.alive) { G.fengjinCumulativeHeal += eh; f.hp = Math.min(f.maxHp, f.hp + eh); totalHeal += eh; } }); }
+    if (totalHeal > 0) addLog('治疗', `💚 小伊卡被动总治疗: +${totalHeal}`, 'heal');
+}
+
+function triggerFengjinSpiritAttack(fighter) {
+    if (fighter.charId !== 'fengjin' || !G.fengjinInRain || !fighter.spirit || !fighter.spirit.alive) return;
+    const en = getAliveEnemies(); if (!en.length || G.fengjinCumulativeHeal < 10) return;
+    let td = 0, tq = 0, tx = 0; const bd = Math.round(G.fengjinCumulativeHeal * 0.2) * (1 + (G.fengjinSpiritDmgStacks || 0) * 0.80);
+    en.forEach(e => { const r = calcDamage(fighter, e, bd, '风', '小伊卡', true); e.hp = Math.max(0, e.hp - r.finalDmg); if (e.hp <= 0) { e.alive = false; addLog('系统', `💀 ${e.name} 被击败!`); } td += r.finalDmg; tq += r.trueDmgQingge; tx += r.trueDmgXilian; });
+    addLog('战斗', `🌿 小伊卡 → 全体 ${td} 总伤害`, 'dmg-wind');
+    if (tq > 0 || tx > 0) { let tl = ''; if (tq > 0) tl += `晴歌真伤+${tq} `; if (tx > 0) tl += `昔涟真伤+${tx}`; addLog('系统', `   ✦ ${tl}`, 'dmg-true'); }
+    if (G.fengjinLightConeDrainTotal > 0) { const extraDmg = Math.round(G.fengjinLightConeDrainTotal * 2.5); en.forEach(e => { if (!e.alive) return; const rd = calcDamage(fighter, e, extraDmg, '风', '小伊卡', true); e.hp = Math.max(0, e.hp - rd.finalDmg); }); addLog('系统', `💥 小伊卡光锥附加伤害 ${extraDmg}`, 'dmg-wind'); G.fengjinLightConeDrainTotal = 0; }
+    G.fengjinCumulativeHeal = Math.round(G.fengjinCumulativeHeal * 0.5);
+}
+
+function triggerQinggeLightConeDrain(fighter) { if (fighter.charId !== 'qingge') return; const first = G.fighters[0]; if (!first || !first.alive) return; const dmg = Math.max(1, Math.round(first.hp * 0.01)); first.hp = Math.max(1, first.hp - dmg); if (first.charId === 'changye') addYiZhiToChangye(2, '晴歌光锥扣血'); triggerAllFengjinPassives(); }
+function triggerFengjinLightConeDrain(fighter) { if (fighter.charId !== 'fengjin') return; G.fighters.forEach(f => { if (f.alive) { const dmg = Math.max(1, Math.round(f.hp * 0.01)); f.hp = Math.max(1, f.hp - dmg); G.fengjinLightConeDrainTotal += dmg; if (f.charId === 'changye') addYiZhiToChangye(2, '风堇光锥扣血'); } }); triggerAllFengjinPassives(); }
+function startBattle() {
+    if (G.battleStarted) return;
+    const filled = G.team.filter(id => id !== null); if (!filled.length) { addLog('系统', '❌ 请先编队!'); return; }
+    document.getElementById('app').classList.add('in-battle'); document.getElementById('app').classList.remove('pre-battle');
+    const ec = parseInt(document.getElementById('enemyCountSelect').value) || 5;
+    G.fighters = []; G.team.forEach((charId, slotIdx) => { if (!charId) return; const cd = CHAR_DATA[charId]; const bs = getCharBaseStats(charId, slotIdx); const se = charId === 'xilian' ? 0 : Math.round(cd.maxEnergy * 0.5); const f = { charId, name: cd.name, short: cd.short, avatar: cd.avatar, element: cd.element, baseHp: bs.baseHp, baseAtk: bs.baseAtk, baseDef: bs.baseDef, hp: bs.baseHp, maxHp: bs.baseHp, atk: bs.baseAtk, def: bs.baseDef, spd: bs.baseSpd, energy: se, maxEnergy: cd.maxEnergy, critRate: bs.baseCritRate, critDmg: bs.baseCritDmg, alive: true, buffs: {}, spirit: null, av: calcActionValue(bs.baseSpd), yiZhi: 0, zhuiYi: 0, inPastRipple: false, isFirstUlt: true, inRain: false, rainDuration: 0, isFirstSummon: true, waterImmediateReady: true, baseCritDmg: bs.baseCritDmg, hasLC: G_LC_EQUIPPED[slotIdx], baseSpdRecord: bs.baseSpd, spdBuff: 0, futureReady: true }; if (charId === 'changye') { f.energy = Math.min(f.energy + 70, f.maxEnergy); f.yiZhi = 1; } if (charId === 'xilian') { const tc = G.team.filter(id => id !== null && id !== 'xilian'); let cnt = 0; tc.forEach(id => { const cd2 = CHAR_DATA[id]; if (cd2 && (cd2.path === '记忆' || id === 'changye' || id === 'fengjin')) cnt++; }); f.zhuiYi = Math.min(cnt === 1 ? 2 : cnt === 2 ? 3 : cnt >= 3 ? 6 : 0, 27); } G.fighters.push(f); });
+    const qg = getAllyById('qingge'); if (qg && qg.alive && qg.spd >= 170) { const bonusSpd = Math.min(qg.spd - 170, 30); G.fighters.forEach(f => { if (f.alive) { const hpBonus = Math.round(f.baseHp * (bonusSpd / 100)); f.maxHp += hpBonus; f.hp += hpBonus; } }); }
+    const fj = getAllyById('fengjin'); if (fj && fj.alive && fj.spd > 200) { const bonus = Math.round(fj.baseHp * 0.20); fj.maxHp += bonus; fj.hp += bonus; }
+    G.enemies = []; for (let i = 0; i < ec; i++) { const t = ENEMY_TEMPLATES[i % ENEMY_TEMPLATES.length]; G.enemies.push({ ...t, id: t.id + '_' + i, hp: t.hp, maxHp: t.hp, alive: true, av: calcActionValue(t.spd) }); }
+    G.sp = 3; G.round = 0; G.roundMaxAV = 300; G.roundStartAV = 0; G.battleActive = true; G.battleStarted = true; G.log = []; G.fieldEffects = {}; G.extraTurns = []; G.fengjinCumulativeHeal = 0; G.fengjinInRain = false; G.fengjinRainDuration = 0; G.fengjinIsFirstSummon = true; G.fengjinSpiritDmgStacks = 0; G.fengjinLightConeDrainTotal = 0; G.changyeInDarkMystery = false; G.changyeDarkMysteryCharges = 0; G.changyeWaterImmediateReady = true; G.xilianInPastRipple = false; G.xilianIsFirstUlt = true; G.xilianStory = 0; G.xilianSkyStacks = 0; G.lastAttackTarget = null; G.currentActionIdx = 0; G.processing = false; G.isUltInterrupt = false; G.isSpiritTurn = false; G.qinggeTalentStacks = 0; G.lastActorName = null; G.pendingUlts = []; G.ultSelecting = {}; G.ultHpApplied = { qingge: false, fengjin: false }; G.waterScheduled = false; resetDamageStats();
+    G.fighters.forEach(f => { if (f.charId === 'changye') { summonSpirit(f); G.extraTurns.push({ charId: 'changye_spirit', name: '长夜 (立即行动)', avatar: 'spirit', fighter: f, isSpirit: true }); } });
+    addLog('系统', `⚔️ 忘却之庭12层 战斗开始! (第1轮, 上限${G.roundMaxAV}行动值, ${ec}个敌人)`, 'special'); buildActionQueue(); renderAll(); setTimeout(() => processNextAction(), 300);
+}
+
+function processNextAction() {
+    if (!G.battleActive) return;
+    G.processing = false;
+    if (!getAliveEnemies().length) { addLog('系统', '🎉 战斗胜利!', 'special'); G.battleActive = false; renderAll(); return; }
+    if (!getAliveAllies().length) { addLog('系统', '💀 战斗失败!', 'special'); G.battleActive = false; renderAll(); return; }
+
+    if (G.waterScheduled) {
+        G.waterScheduled = false;
+        const cy = getAllyById('changye');
+        if (cy && cy.alive && cy.spirit && cy.spirit.alive && (cy.yiZhi || 0) >= 16 && G.changyeWaterImmediateReady !== false) {
+            G.changyeWaterImmediateReady = false;
+            const curAv = G.actionQueue[G.currentActionIdx]?.av || cy.av;
+            cy.spirit.av = curAv + 1;
+            buildActionQueue(); G.currentActionIdx = 0;
+            addLog('系统', '🌊 水母忆质达到16层，立即行动！', 'special');
+        }
+    }
+
+    G.processing = true;
+    buildActionQueue(); if (!G.actionQueue.length) { G.processing = false; return; }
+    const cur = G.actionQueue[G.currentActionIdx]; if (!cur) { G.processing = false; return; }
+    G.isSpiritTurn = cur.isSpirit && cur.charId === 'changye';
+
+    if (cur.type === 'enemy') { enemyAction(cur); }
+    else if (cur.isSpirit) { spiritAutoAction(cur); }
+    else {
+        const f = cur.fighter; if (!f || !f.alive) { G.processing = false; setTimeout(() => processNextAction(), 100); return; }
+        if (f.charId !== 'xilian' && f.futureReady) { const xl = getAllyById('xilian'); if (xl && xl.alive) { xl.zhuiYi = Math.min(xl.zhuiYi + 1, xl.maxEnergy); addLog('系统', `📖 【未来】角色触发: ${f.name} 行动，昔涟追忆+1 (${xl.zhuiYi}/${xl.maxEnergy})`); } f.futureReady = false; }
+        if (f.charId === 'xilian') { giveFutureToAllies(); }
+        if (f.charId === 'changye' && f.spdBuff && f.spdBuff > 0) { const baseSpd = f.baseSpdRecord || f.spd; f.spd = baseSpd; f.spdBuff = 0; addLog('系统', `🌙 长夜月回合开始，自爆速度buff已移除，速度恢复为 ${baseSpd}`, 'buff'); }
+        if (G.lastActorName !== cur.name) { G.lastActorName = cur.name; addLog('系统', `══════ 第${G.round + 1}轮 · 轮到 ${cur.name} 行动 ══════`, 'turn-start'); }
+        showSkillSelection(f); G.processing = false; renderAll();
+    }
+}
+
+function enemyAction(entry) { const en = entry.enemy; if (!en || !en.alive) { G.processing = false; setTimeout(() => processNextAction(), 100); return; } const allies = getAliveAllies(); if (!allies.length) { G.processing = false; setTimeout(() => processNextAction(), 100); return; } const target = allies[Math.floor(Math.random() * allies.length)]; const dmg = Math.round((1200 + Math.random() * 600) * (1 - target.def / (target.def + 800))); const oh = target.hp; target.hp = Math.max(0, target.hp - dmg); if (target.charId === 'changye' && target.hp < oh) { addYiZhiToChangye(2, '天赋·被攻击'); G.fieldEffects.changyeTalentCD = true; } if (target.hp <= 0) { target.alive = false; if (target.spirit) target.spirit.alive = false; addLog('系统', `💀 ${target.name} 被击败!`); } addLog('战斗', `👹 ${en.name} → ${target.name} ${dmg}伤害`, 'dmg-enemy'); triggerAllFengjinPassives(); advanceActionValue(); G.processing = false; renderAll(); setTimeout(() => processNextAction(), 300); }
+
+function showSkillSelection(fighter) {
+    if (!fighter || !fighter.alive) { document.getElementById('skillButtons').innerHTML = `<span style="color:#ff6666;">💀 ${fighter ? fighter.name : '角色'}已阵亡</span>`; return; }
+    const c = document.getElementById('skillButtons'); const cd = CHAR_DATA[fighter.charId];
+    let h = `<span class="current-actor-indicator">⚡ 当前行动: ${fighter.name}</span><span style="color:#aabbdd;font-size:12px;margin-left:6px;">选择技能:</span>`;
+    const sp = G.sp > 0;
+    let ult = fighter.charId === 'xilian' ? (fighter.zhuiYi || 0) >= (G.xilianIsFirstUlt ? 24 : 12) : fighter.energy >= fighter.maxEnergy;
+    if (fighter.charId === 'xilian' && G.xilianInPastRipple) {
+        h += `<button class="btn btn-primary" id="btnEnhancedBasic">【向着爱与明天♪】</button>`;
+        h += `<span style="color:#ffd966;font-size:11px;">🌊 往昔状态</span>`;
+        h += `<button class="btn ${ult ? 'btn-warning' : ''}" id="btnXilianUlt" ${ult ? '' : 'disabled'}>⚡【此诗献予一切生命】</button>`;
+        c.innerHTML = h;
+        document.getElementById('btnEnhancedBasic').addEventListener('click', () => doSkill(fighter.charId, 'enhancedBasic'));
+        if (ult) document.getElementById('btnXilianUlt').addEventListener('click', () => doUlt(fighter.charId));
+        return;
+    }
+    h += `<button class="btn" id="btnBasic">【${cd.skills.basic.name}】</button>`;
+    if (fighter.charId === 'changye') {
+        h += `<button class="btn" id="btnSkill">【${cd.skills.skill.name}】</button>`;
+    } else {
+        h += `<button class="btn ${sp ? '' : 'btn-danger'}" id="btnSkill" ${sp ? '' : 'disabled'}>【${cd.skills.skill.name}】${sp ? '' : '(SP不足)'}</button>`;
+    }
+    h += `<button class="btn ${ult ? 'btn-warning' : ''}" id="btnUlt" ${ult ? '' : 'disabled'}>⚡【${cd.skills.ultimate.name}】${ult ? ' (插队)' : ''}</button>`;
+    if (fighter.charId === 'changye') { h += `<span style="color:#7aa9ff;font-size:11px;">🌙 忆质: ${fighter.yiZhi || 0}/16</span>`; if ((fighter.yiZhi || 0) >= 16) h += `<span style="color:#ffd966;">🌊已就绪</span>`; }
+    if (fighter.charId === 'xilian') { h += `<span style="color:#8899bb;font-size:11px;">📖 追忆: ${fighter.zhuiYi || 0}/27</span>`; }
+    if (fighter.charId === 'qingge') h += `<span style="color:#8899bb;font-size:11px;">🌸 叠层: ${G.qinggeTalentStacks}/5</span>`;
+    if (fighter.charId === 'fengjin') { if (G.fengjinInRain) h += `<span style="color:#7aa9ff;">🌿雨过天晴</span>`; h += `<span style="color:#8899bb;">💚${G.fengjinCumulativeHeal}</span>`; }
+    c.innerHTML = h;
+
+    document.getElementById('btnBasic').addEventListener('click', () => doSkillWithTarget(fighter.charId, 'basic'));
+    const skillBtn = document.getElementById('btnSkill');
+    if (skillBtn && !skillBtn.disabled) {
+        if (fighter.charId === 'changye') {
+            skillBtn.addEventListener('click', () => doSkill(fighter.charId, 'skill'));
+        } else {
+            skillBtn.addEventListener('click', () => doSkill(fighter.charId, 'skill'));
+        }
+    }
+    const ultBtn = document.getElementById('btnUlt');
+    if (ultBtn && !ultBtn.disabled) {
+        ultBtn.addEventListener('click', () => doUlt(fighter.charId));
+    }
+}
+
+function doUlt(charId) { if (!G.battleActive) return; const f = getAllyById(charId); if (!f || !f.alive) return; G.ultSelecting = G.ultSelecting || {}; if (G.ultSelecting[charId]) return; if (f.charId === 'xilian') { if ((f.zhuiYi || 0) < (G.xilianIsFirstUlt ? 24 : 12)) { addLog('系统', '❌ 追忆不足'); return; } } else { if (f.energy < f.maxEnergy) { addLog('系统', '❌ 能量不足'); return; } } if (G.isUltInterrupt) { if (!G.pendingUlts.find(u => u.charId === charId)) { G.pendingUlts.push({ charId: charId }); addLog('系统', `⏳ ${f.name} 终结技已排队`, 'special'); } return; } G.isUltInterrupt = true; executeUlt(f); }
+function doSkill(charId, skillKey) { if (!G.battleActive) return; const f = getAllyById(charId); if (!f || !f.alive) return; if (skillKey === 'skill') { if (charId !== 'changye' && G.sp <= 0) { addLog('系统', '❌ 战技点不足'); return; } if (charId === 'qingge') { showAllySelection(f, 'skill'); return; } executeSkill(f, 'skill', null); } else if (skillKey === 'enhancedBasic') { executeEnhancedBasic(f); } }
+function doSkillWithTarget(charId, skillKey) { const f = getAllyById(charId); if (!f || !f.alive) return; if (skillKey === 'basic') showEnemySelection(f, 'basic'); }
+
+function addYiZhiToChangye(amt, src) { const c = getAllyById('changye'); if (!c || !c.alive) return; c.yiZhi = Math.min((c.yiZhi || 0) + amt, 999); checkChangyeWaterAdvance(c); }
+function triggerChangyeTrace1(f, src) { if (f.charId !== 'changye' || !f.alive) return; f.energy = Math.min(f.energy + 5, f.maxEnergy); addYiZhiToChangye(1, `行迹1·${src}`); }
+function checkChangyeWaterAdvance(fighter) { if (fighter.charId !== 'changye' || !fighter.alive) return; if ((fighter.yiZhi || 0) >= 16 && G.changyeWaterImmediateReady !== false) { const sp = fighter.spirit; if (sp && sp.alive && sp.spd > 0) { G.waterScheduled = true; } } }
+function giveFutureToAllies() { G.fighters.forEach(f => { if (f.alive && f.charId !== 'xilian') { f.futureReady = true; if (f.spirit && f.spirit.alive) f.spirit.hasFuture = true; } }); }
+// ★ UI 渲染 ★
+function renderAll() { renderRoster(); renderTeam(); renderActionBar(); renderEnemyBar(); renderLog(); updateInfo(); }
+
+function renderRoster() {
+    const c = document.getElementById('rosterPanel');
+    let h = `<span style="color:#8899bb;font-size:11px;">📋 角色池:</span>`;
+    const it = G.team.filter(id => id !== null);
+    for (const [id, cd] of Object.entries(CHAR_DATA)) {
+        const inT = it.includes(id);
+        h += `<div class="roster-item ${inT ? 'in-team' : ''}" onclick="${inT ? '' : 'addToTeam(\'' + id + '\')'}">${cd.short} (${cd.element})${inT ? ' ✅' : ''}${inT ? `<span class="del" onclick="event.stopPropagation();removeFromTeam('${id}')">✕</span>` : ''}</div>`;
+    }
+    c.innerHTML = h;
+}
+function addToTeam(charId) { if (G.team.filter(id => id !== null).length >= 4) { alert('队伍已满'); return; } if (G.team.includes(charId)) { alert('已在队伍中'); return; } const idx = G.team.indexOf(null); if (idx === -1) return; G.team[idx] = charId; renderAll(); }
+function removeFromTeam(charId) { const idx = G.team.indexOf(charId); if (idx !== -1) { G.team[idx] = null; renderAll(); } }
+
+function renderTeam() {
+    const c = document.getElementById('teamPanel'); const cf = getCurrentFighter(); let h = '';
+    for (let i = 0; i < 4; i++) {
+        const charId = G.team[i];
+        if (charId) {
+            const cd = CHAR_DATA[charId]; const f = getAllyById(charId);
+            const hp = f ? f.hp : (BASE_STATS[charId].baseHp + (G_LC_EQUIPPED[i] ? LIGHTCONE_STATS[charId].hp : 0));
+            const mx = f ? f.maxHp : (BASE_STATS[charId].baseHp + (G_LC_EQUIPPED[i] ? LIGHTCONE_STATS[charId].hp : 0));
+            const en = f ? f.energy : 0; const alive = f ? f.alive : true;
+            const hpPct = mx > 0 ? Math.round(hp / mx * 100) : 0;
+            let ult = charId === 'xilian' && f ? (f.zhuiYi || 0) >= (G.xilianIsFirstUlt ? 24 : 12) : en >= cd.maxEnergy;
+            const enPct = cd.maxEnergy > 0 ? Math.round(en / cd.maxEnergy * 100) : 0;
+            let bt = ''; if (f && f.buffs) for (const [k, v] of Object.entries(f.buffs)) if (v && v.desc) bt += `<span class="buff-tag">${v.desc}</span>`;
+            let si = ''; if (f && f.spirit && f.spirit.alive) si = `<div class="spirit-info">🌀 ${f.spirit.name} (${Math.round(f.spirit.hp)}/${Math.round(f.spirit.maxHp)})</div>`;
+            let ei = ''; if (charId === 'changye' && f) { ei += `🌙忆质:${f.yiZhi || 0}/16`; if ((f.yiZhi || 0) >= 16) ei += ` 🌊就绪`; if (G.changyeInDarkMystery) ei += ` 🌑至暗(${G.changyeDarkMysteryCharges})`; }
+            if (charId === 'xilian' && f) { ei += `📖追忆:${f.zhuiYi || 0}/27`; if (G.xilianInPastRipple) ei += ` 🌊往昔`; }
+            if (charId === 'fengjin' && f) { if (G.fengjinInRain) ei += `🌿雨过天晴(${G.fengjinRainDuration})`; ei += ` 💚${G.fengjinCumulativeHeal}`; }
+            if (charId === 'qingge' && f) ei += `🌸叠层:${G.qinggeTalentStacks}/5`;
+            const isActive = cf && cf.charId === charId && alive && G.battleActive;
+            const elementTag = `<span class="corner-tag">${cd.element}·${cd.path}</span>`;
+            h += `<div class="char-card has-character${isActive ? ' active-turn' : ''}" style="${!alive ? 'opacity:0.5;' : ''}" onclick="openCharDetail(${i})"><div class="active-turn-tag">⚡ 行动中</div><div class="char-name">${cd.short}</div><div class="stats"><span>❤️${Math.round(hp)}/${Math.round(mx)}</span><span>⚡${Math.round(en)}/${cd.maxEnergy}</span><span>🏃${f ? Math.round(f.spd) : cd.baseSpd}</span></div><div class="hp-bar"><div class="fill" style="width:${hpPct}%;"></div></div><div class="energy-bar"><div class="fill" style="width:${enPct}%;"></div></div><div class="buff-list">${bt}</div>${ult ? `<button class="ult-badge active" onclick="event.stopPropagation();doUlt('${charId}')">⚡</button>` : `<div class="ult-badge" style="opacity:0.2;">⏳</div>`}${!alive ? '<div class="dead">💀 阵亡</div>' : ''}${si}${ei ? `<div style="font-size:8px;color:#aabbdd;margin-top:1px;">${ei}</div>` : ''}${elementTag}</div>`;
+        } else h += `<div class="char-card" onclick="openCharDetail(${i})"><div class="empty-slot">⬜ 空位 ${i + 1}</div></div>`;
+    }
+    c.innerHTML = h;
+}
+
+function renderActionBar() {
+    const c = document.getElementById('actionBar');
+    const q = G.actionQueue || [];
+    if (q.length === 0) { c.innerHTML = ''; return; }
+    const curAv = q[G.currentActionIdx]?.av || 0;
+    const consumed = curAv - G.roundStartAV;
+    let h = `<span class="label">⏳ 第${G.round + 1}轮 (${Math.round(consumed)}/${G.roundMaxAV})</span>`;
+    const ms = Math.min(q.length, 10);
+    for (let i = 0; i < ms; i++) {
+        const it = q[i]; if (!it) continue;
+        const cur = i === G.currentActionIdx;
+        let cls = 'action-slot'; if (cur) cls += ' current'; if (it.extra) cls += ' extra';
+        let av = '👤'; if (it.avatar === 'enemy') av = '👹'; else if (it.avatar === 'spirit') av = '🌀'; else if (it.avatar) av = it.avatar.charAt(0);
+        const displayAv = cur ? 0 : Math.round(it.av - curAv);
+        h += `<div class="${cls}"><span class="avatar ${it.avatar || ''}">${av}</span>${it.name}${cur ? ' ◄' : ''}<span style="font-size:8px;color:#667799;margin-left:2px;">${displayAv}</span></div>`;
+    }
+    if (q.length > 10) h += `<span style="color:#667799;font-size:10px;">+${q.length - 10}</span>`;
+    c.innerHTML = h;
+}
+
+function renderEnemyBar() {
+    const c = document.getElementById('enemyBar'); let h = '';
+    G.enemies.forEach(e => {
+        const pct = Math.round(e.hp / e.maxHp * 100);
+        const tag = e.type === 'normal' ? '小怪' : '精英怪';
+        const tc = e.type === 'normal' ? '#66aa88' : '#ff9966';
+        h += `<div class="enemy-item" style="${e.alive ? '' : 'opacity:0.4;'}"><div class="name"><span>${e.alive ? '👹' : '💀'} ${e.name}</span><span class="tag" style="background:${tc};color:#0b0e14;">${tag}</span></div><div class="hp-track"><div class="fill" style="width:${pct}%;"></div><div class="label">${pct}%</div></div><div class="hp-text">❤️ ${Math.round(e.hp)} / ${Math.round(e.maxHp)}</div></div>`;
+    });
+    if (!G.enemies.length) h = '<span style="color:#667799;">没有敌人</span>';
+    c.innerHTML = h;
+}
+
+function renderLog() {
+    const c = document.getElementById('logContent'); let h = '';
+    G.log.slice(-50).forEach(e => { h += `<div class="log-entry"><span class="time">[${e.time}]</span><span class="${e.type}">${e.text}</span></div>`; });
+    c.innerHTML = h;
+    const p = document.getElementById('logPanel'); if (p) p.scrollTop = p.scrollHeight;
+}
+function updateInfo() {
+    document.getElementById('roundDisplay').textContent = G.round + 1;
+    document.getElementById('spDisplay').textContent = G.sp;
+    document.getElementById('targetDisplay').textContent = getAliveEnemies().length + '个敌人';
+}
+
+function resetBattle() {
+    G.battleActive = false; G.battleStarted = false; G.fighters = []; G.enemies = []; G.actionQueue = []; G.log = [];
+    G.round = 0; G.roundMaxAV = 300; G.roundStartAV = 0; G.sp = 3; G.fieldEffects = {}; G.extraTurns = [];
+    G.fengjinCumulativeHeal = 0; G.fengjinInRain = false; G.fengjinRainDuration = 0;
+    G.fengjinIsFirstSummon = true; G.fengjinSpiritDmgStacks = 0; G.fengjinLightConeDrainTotal = 0;
+    G.changyeInDarkMystery = false; G.changyeDarkMysteryCharges = 0; G.changyeWaterImmediateReady = true;
+    G.xilianInPastRipple = false; G.xilianIsFirstUlt = true; G.xilianStory = 0; G.xilianSkyStacks = 0;
+    G.currentActionIdx = 0; G.processing = false; G.isUltInterrupt = false; G.isSpiritTurn = false;
+    G.qinggeTalentStacks = 0; G.lastActorName = null; G.waterAdvanceLock = false;
+    G.ultHpApplied = { qingge: false, fengjin: false };
+    document.getElementById('app').classList.add('pre-battle');
+    document.getElementById('app').classList.remove('in-battle');
+    document.getElementById('skillButtons').innerHTML = '<span style="color:#667799;">等待行动...</span>';
+    addLog('系统', '🔄 已重置'); renderAll();
+}
+// ★ 角色详情弹窗 ★
+let currentDetailCharId = null, currentDetailSlotIdx = -1, showingSpirit = false;
+function openCharDetail(slotIdx) {
+    currentDetailSlotIdx = slotIdx; showingSpirit = false;
+    const charId = G.team[slotIdx]; if (!charId) return;
+    currentDetailCharId = charId;
+    renderDetailModal();
+    document.getElementById('charDetailOverlay').classList.add('show');
+}
+function closeCharDetail() { document.getElementById('charDetailOverlay').classList.remove('show'); }
+function toggleDetailSpirit() { showingSpirit = !showingSpirit; renderDetailModal(); }
+function renderDetailModal() {
+    const slotIdx = currentDetailSlotIdx; const charId = currentDetailCharId;
+    if (!charId) return;
+    const modal = document.getElementById('charDetailModal');
+    const cd = CHAR_DATA[charId];
+    const bs = getCharBaseStats(charId, slotIdx);
+    const equipped = G_LC_EQUIPPED[slotIdx];
+    const lc = LIGHTCONE_STATS[charId];
+    const f = G.battleActive ? getAllyById(charId) : null;
+    let title = cd.name;
+    let hp, mx, atk, def, spd, cr, cdmg, elemDmg;
+    if (showingSpirit && f && f.spirit && f.spirit.alive) {
+        title = f.spirit.name;
+        hp = f.spirit.hp; mx = f.spirit.maxHp; spd = f.spirit.spd;
+        atk = '-'; def = '-';
+        let critRate = f.critRate; let critDmg = f.critDmg;
+        if (f.buffs && f.buffs.changyeSkill && f.buffs.changyeSkill.critDmgBonus) critDmg += f.buffs.changyeSkill.critDmgBonus;
+        cr = Math.round(critRate * 100) + '%'; cdmg = Math.round(critDmg * 100) + '%';
+        elemDmg = { ice: cd.element === '冰' ? 40 : 0, wind: cd.element === '风' ? 40 : 0, other: 0 };
+    } else {
+        hp = f ? f.hp : bs.baseHp; mx = f ? f.maxHp : bs.baseHp;
+        spd = f ? f.spd : bs.baseSpd;
+        cr = f ? Math.round(f.critRate * 100) + '%' : Math.round(bs.baseCritRate * 100) + '%';
+        cdmg = f ? Math.round(f.critDmg * 100) + '%' : Math.round(bs.baseCritDmg * 100) + '%';
+        atk = f ? Math.round(f.atk) : bs.baseAtk; def = f ? Math.round(f.def) : bs.baseDef;
+        elemDmg = { ice: 0, wind: 0, other: 0 };
+    }
+    let h = `
+        <h2>${title} <span style="font-size:12px;color:#8899bb;">${cd.element}·${cd.path}</span></h2>
+        <div class="detail-row"><span class="label">生命值</span><span class="value">${Math.round(hp)} / ${Math.round(mx)}</span></div>
+        <div class="detail-row"><span class="label">攻击力</span><span class="value">${atk}</span></div>
+        <div class="detail-row"><span class="label">防御力</span><span class="value">${def}</span></div>
+        <div class="detail-row"><span class="label">速度</span><span class="value">${Math.round(spd)}</span></div>
+        <div class="detail-row"><span class="label">暴击率</span><span class="value">${cr}</span></div>
+        <div class="detail-row"><span class="label">暴击伤害</span><span class="value">${cdmg}</span></div>
+        <div class="section-title">元素伤害加成</div>
+        <div class="detail-row"><span class="label">冰属性</span><span class="value">${elemDmg.ice}%</span></div>
+        <div class="detail-row"><span class="label">风属性</span><span class="value">${elemDmg.wind}%</span></div>
+        <div class="detail-row"><span class="label">其他属性</span><span class="value">${elemDmg.other}%</span></div>
+        ${!showingSpirit ? `<div class="section-title">光锥: ${equipped ? '已装备' : '未装备'}</div>` : ''}
+    `;
+    if (!G.battleActive && !showingSpirit) {
+        h += `
+        <div class="lc-toggle">
+            <label><input type="checkbox" ${equipped ? 'checked' : ''} onchange="toggleLightCone(${slotIdx},this.checked)"> 佩戴光锥</label>
+            <span style="color:#8899bb;font-size:11px;">生命+${lc.hp} 攻击+${lc.atk} 防御+${lc.def}</span>
+        </div>`;
+    }
+    if (f && f.spirit && f.spirit.alive) {
+        h += `<button class="switch-btn" onclick="toggleDetailSpirit()">切换到 ${showingSpirit ? cd.name : f.spirit.name}</button>`;
+    }
+    h += `<button class="btn btn-danger close-btn" onclick="closeCharDetail()">关闭</button>`;
+    modal.innerHTML = h;
+}
+function toggleLightCone(slotIdx, checked) { G_LC_EQUIPPED[slotIdx] = checked; renderAll(); }
+
+// 初始化
+renderAll();
+addLog('系统', '💡 点击角色池加入编队 (4人), 然后「开始战斗」');
+addLog('系统', '📌 点击角色卡片可查看详情并调整光锥');
+
+// 全局绑定
+window.addToTeam = addToTeam; window.removeFromTeam = removeFromTeam;
+window.startBattle = startBattle; window.resetBattle = resetBattle;
+window.doSkill = doSkill; window.doUlt = doUlt;
+window.doSkillWithTarget = doSkillWithTarget; window.executeTargetAction = executeTargetAction;
+window.cancelAction = cancelAction;
+window.xilianUltChoice = xilianUltChoice; window.xilianApplyBuff = xilianApplyBuff;
+window.executeSkillWithTarget = executeSkillWithTarget;
+window.openCharDetail = openCharDetail; window.closeCharDetail = closeCharDetail;
+window.toggleLightCone = toggleLightCone;
+
+</script>
+</body>
+</html>
